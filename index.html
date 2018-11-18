@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body {
+            overflow: hidden;
+            margin-top: 50px;
+            margin-left: 50px;
+            background-color: wheat;
+        }
+        #paint {
+            width: calc(100vw - 100px);
+            height: calc(100vh - 100px);
+            position: absolute;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="paint"></div>
+    <script src="paint.js"></script>
+    <script>
+        var paint = d3Paint("#paint");
+        window.addEventListener('resize', paint.adjustSize);
+    </script>
+</body>
+</html>
