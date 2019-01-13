@@ -1,30 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-    <style>
-        body {
-            overflow: hidden;
-            margin-top: 50px;
-            margin-left: 50px;
-            background-color: wheat;
-        }
-        #paint {
-            width: calc(100vw - 100px);
-            height: calc(100vh - 100px);
-            position: absolute;
-            padding: 0;
-            margin: 0;
-        }
-    </style>
-</head>
 <body>
-    <div id="paint"></div>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.51.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.51.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="paint.css">
     <script src="paint.js"></script>
+
+    <div id="mapbox"></div>
+    <div id="paint" style="opacity: 0.5"></div>
+
     <script>
+        mapboxgl.accessToken = 'undefined';
+        var lon = 30;
+        var lat = 31.3;
+        var zoom = 12;
+        var map = new mapboxgl.Map({
+            container: 'mapbox',
+            style: 'https://strangerintheq.bitbucket.io/latest/bundle/common/resources/mapbox-style-buildings-heights.json',
+            center: [lon, lat],
+            zoom: zoom
+        });
         var paint = d3Paint("#paint");
         window.addEventListener('resize', paint.adjustSize);
+        paint.onZoom(function (t) {
+            var k = Math.cos(lat*Math.PI/180);
+            var s = 5778 * t.k / k;
+            var z = zoom + Math.log2(t.k);
+            map.jumpTo({
+                center: [
+                    lon - t.x / s / k,
+                    lat + t.y / s
+                ],
+                zoom: z
+            });
+        });
     </script>
 </body>
 </html>

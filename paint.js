@@ -18376,13 +18376,14 @@ var d3 = require('d3');
 
 window.d3Paint = function (elementOrSelector) {
 
+    var zoomCallbacks = [];
     // var zoom = 1;
     var width = 800;
     var height = 600;
     var containerElement = d3.select(elementOrSelector);
 
     var svg = containerElement.append('svg')
-        .attr('preserveAspectRatio','xMidYMid meet')
+       .attr('preserveAspectRatio','xMidYMid meet')
         .style('background-color', 'white');
 
     var helpers = svg.append('g')
@@ -18392,8 +18393,8 @@ window.d3Paint = function (elementOrSelector) {
 
     helpers.append('rect')
         .attr('fill', 'rgba(0,0,0,0.2)')
-        .attr('x', 0)
-        .attr('y', 0)
+        .attr('x', -width/2)
+        .attr('y', -height/2)
         .attr('width', width)
         .attr('height', height);
 
@@ -18403,8 +18404,8 @@ window.d3Paint = function (elementOrSelector) {
 
     var pad = 25;
     var zoom = d3.zoom()
-        .scaleExtent([1, 50])
-        .translateExtent([[-pad, -pad], [width+pad, height+pad]])
+        // .scaleExtent([1, 50])
+        // .translateExtent([[-pad, -pad], [width+pad, height+pad]])
         .on("zoom", function() {
             t = d3.event.transform;
             zoomed();
@@ -18427,23 +18428,37 @@ window.d3Paint = function (elementOrSelector) {
 
     adjustSize();
 
+
+
     return {
-        adjustSize: adjustSize
+        adjustSize: adjustSize,
+        onZoom: onZoom
     };
 
+    function onZoom(onZoomFn) {
+        zoomCallbacks.push(onZoomFn);
+    }
+
     function zoomed() {
-        if (!t)
-            return;
+
         helpers.attr("transform", t);
         canvas.attr("transform", t);
+
         gX.call(xAxis.scale(t.rescaleX(x)));
         gY.call(yAxis.scale(t.rescaleY(y)));
+
+        zoomCallbacks.forEach(function (zoomCallback) {
+            zoomCallback(t);
+        })
     }
 
     function adjustSize() {
+
         var w = containerElement.node().clientWidth;
         var h = containerElement.node().clientHeight;
-        svg.attr('width', w).attr('height', h);
+        svg.attr('width', w)
+            .attr('height', h)
+            .attr('viewBox', -w/2 + ' ' + -h/2 + ' ' + w + ' ' + h);
 
         x.domain([-0.5, w + 0.5]).range([-0.5, w + 0.5]);
         y.domain([-0.5, h + 0.5]).range([-0.5, h + 0.5]);
