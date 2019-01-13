@@ -3,7 +3,6 @@ var d3 = require('d3');
 window.d3Paint = function (elementOrSelector) {
 
     var zoomCallbacks = [];
-    // var zoom = 1;
     var width = 800;
     var height = 600;
     var containerElement = d3.select(elementOrSelector);
@@ -28,10 +27,7 @@ window.d3Paint = function (elementOrSelector) {
     var canvas = svg.append('g')
         .classed('canvas', true);
 
-    var pad = 25;
     var zoom = d3.zoom()
-        // .scaleExtent([1, 50])
-        // .translateExtent([[-pad, -pad], [width+pad, height+pad]])
         .on("zoom", function() {
             t = d3.event.transform;
             zoomed();
@@ -54,8 +50,6 @@ window.d3Paint = function (elementOrSelector) {
 
     adjustSize();
 
-
-
     return {
         adjustSize: adjustSize,
         onZoom: onZoom
@@ -66,7 +60,6 @@ window.d3Paint = function (elementOrSelector) {
     }
 
     function zoomed() {
-
         helpers.attr("transform", t);
         canvas.attr("transform", t);
 
@@ -79,15 +72,14 @@ window.d3Paint = function (elementOrSelector) {
     }
 
     function adjustSize() {
-
         var w = containerElement.node().clientWidth;
         var h = containerElement.node().clientHeight;
         svg.attr('width', w)
             .attr('height', h)
             .attr('viewBox', -w/2 + ' ' + -h/2 + ' ' + w + ' ' + h);
 
-        x.domain([-0.5, w + 0.5]).range([-0.5, w + 0.5]);
-        y.domain([-0.5, h + 0.5]).range([-0.5, h + 0.5]);
+        x.domain([-w/2, w/2]).range([-w/2, w/2]);
+        y.domain([-h/2, h/2]).range([-h/2, h/2]);
 
         xAxis.ticks((w + 2) / (h + 2) * 10)
             .tickSize(h)
@@ -96,6 +88,11 @@ window.d3Paint = function (elementOrSelector) {
         yAxis.ticks(10)
             .tickSize(w)
             .tickPadding(8 - w);
+
+        d3.select('g.axis--x')
+            .attr('transform', 'translate(0,' + (-h/2) +')');
+        d3.select('g.axis--y')
+            .attr('transform', 'translate(' + (-w/2) + ',0)');
 
         zoomed()
     }
