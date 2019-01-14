@@ -1,13 +1,12 @@
 body {
     overflow: hidden;
-    margin-top: 50px;
-    margin-left: 50px;
+    margin: 20px 10px 10px;
     background-color: wheat;
 }
 #mapbox,
 #paint {
-    width: calc(100vw - 100px);
-    height: calc(100vh - 100px);
+    width: calc(100vw - 20px);
+    height: calc(100vh - 50px);
     position: absolute;
     padding: 0;
     margin: 0;
