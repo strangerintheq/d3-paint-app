@@ -13,7 +13,6 @@ function dragStart(group, e) {
         .datum([[e.x, e.y], [e.x, e.y]]);
 
     dragMove(e);
-
 }
 
 function dragMove(e) {

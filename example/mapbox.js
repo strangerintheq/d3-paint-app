@@ -1,6 +1,6 @@
 
-var lon = 30;
-var lat = 31.2;
+var lon = 30.2;
+var lat = 59.89;
 var zoom = 15;
 
 var map = new mapboxgl.Map({
@@ -36,3 +36,4 @@ d3.selectAll('button').each(function () {
         d3.select('#currentMode').text('currentMode: ' + id)
     })
 });
+

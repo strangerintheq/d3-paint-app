@@ -47,6 +47,41 @@ function axes(svg) {
     }
 }
 },{}],2:[function(require,module,exports){
+module.exports = extent;
+
+function extent(svg) {
+
+    var extent = svg.append('g')
+        .classed('extent', true)
+        .append('rect')
+        .attr('fill', 'none')
+        .attr('pointer-events', 'none')
+        .attr('stroke', 'red')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '4 5');
+
+    return {
+        updateExtent: function (node) {
+            d3.select(node).attr('transform',
+                'rotate(' + 33 + ')')
+            
+            console.log(node.getBBox())
+            var r = node.getBoundingClientRect();
+            var el = svg.node().parentNode;
+            let x = r.x  - el.clientWidth/2 - el.offsetLeft -5;
+            let y = r.y -el.clientHeight/2 - el.offsetTop -5;
+            let w = r.width + 10;
+            let h = r.height + 10;
+            extent.attr('x', x)
+                .attr('y', y)
+                .attr('width', w)
+                .attr('height', h)
+
+        }
+    }
+}
+
+},{}],3:[function(require,module,exports){
 
 var mode = {
     active: null,
@@ -73,7 +108,7 @@ function dragMove(mouse) {
             return Math.sqrt(x*x + y*y);
         })
 }
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 
 var mode = {
     active: null,
@@ -99,7 +134,7 @@ function dragMove(e) {
         .attr('x2', e.x)
         .attr('y2', e.y)
 }
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 var line = d3.line().curve(d3.curveBasis);
 
 var ctx;
@@ -144,7 +179,7 @@ function dragMove(e) {
 
     ctx.active.attr("d", line);
 }
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 
 var mode = {
     active: null,
@@ -160,7 +195,6 @@ function dragStart(group, e) {
         .datum([[e.x, e.y], [e.x, e.y]]);
 
     dragMove(e);
-
 }
 
 function dragMove(e) {
@@ -178,9 +212,9 @@ function dragMove(e) {
             return Math.abs(e.y - d[0][1]);
         })
 }
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var createAxes = require('./axes');
-
+var createExtent = require('./extent')
 var modes = {
     circle: require('./mode/circle'),
     rect: require('./mode/rect'),
@@ -196,16 +230,18 @@ window.d3Paint = function (elementOrSelector) {
     var zoomCallbacks = [];
     var containerElement = d3.select(elementOrSelector);
     var svg = containerElement.append('svg')
-        .attr('preserveAspectRatio','xMidYMid meet');
+        .attr('preserveAspectRatio', 'xMidYMid meet');
 
+    var axes = createAxes(svg);
+    var helpers = g('helpers');
+    var canvas = g('canvas');
+    var extent = createExtent(svg);
+    var transform = d3.zoomTransform(svg);
+    svg.call(createZoom());
+    adjustSize();
     window.oncontextmenu = function () {
-        return false;
+        return false
     };
-
-    var helpers = svg.append('g')
-        .classed('helpers', true);
-
-    var t = d3.zoomTransform(svg);
 
     helpers.append('rect')
         .attr('fill', 'rgba(0,0,0,0.2)')
@@ -214,13 +250,6 @@ window.d3Paint = function (elementOrSelector) {
         .attr('width', width)
         .attr('height', height)
         .call(createDrag());
-
-    var canvas = svg.append('g')
-        .classed('canvas', true);
-
-    var axes = createAxes(svg);
-    svg.call(createZoom());
-    adjustSize();
 
     return {
         adjustSize: adjustSize,
@@ -235,11 +264,12 @@ window.d3Paint = function (elementOrSelector) {
     }
 
     function zoomed() {
-        helpers.attr("transform", t);
-        canvas.attr("transform", t);
-        axes.applyZoom(t);
+        helpers.attr("transform", transform);
+        canvas.attr("transform", transform);
+        axes.applyZoom(transform);
+        mode && mode.active && extent.updateExtent(mode.active.node());
         zoomCallbacks.forEach(function (zoomCallback) {
-            zoomCallback(t);
+            zoomCallback(transform);
         });
     }
 
@@ -254,51 +284,35 @@ window.d3Paint = function (elementOrSelector) {
 
     function createDrag() {
         return d3.drag()
-            // .container(function() {
-            //     return this;
-            // })
-            // .subject(function() {
-            //     var p = [
-            //         d3.event.x,
-            //         d3.event.y
-            //     ];
-            //     return [p, p];
-            // })
-            .on("start", dragStart)
-            .on("drag", dragMove)
-            .on("end", dragEnd);
+            .on("start", function () {
+                mode && dragStart();
+            })
+            .on("drag", function () {
+                mode && mode.dragMove(d3.event);
+            })
+            .on("end", function () {
+                mode && dragEnd();
+            });
     }
 
     function dragStart() {
-        if (!mode)
-            return;
-
         var group = canvas.append('g');
-        mode.dragStart(group, mouseOffset(d3.event));
-        // this.createExtent(group);
+        mode.dragStart(group, d3.event);
         applyBrush(mode.active);
     }
 
+    function dragEnd() {
+        extent.updateExtent(mode.active.node());
+    }
+
+    function g(className) {
+        return svg.append('g').classed(className, true);
+    }
+
     function applyBrush(active) {
-        active.attr('stroke-width', 2)
+        active.attr('stroke-width', 3)
             .attr('stroke', 'black')
             .attr('fill', 'transparent')
-    }
-
-    function dragMove() {
-        mode && mode.dragMove && mode.dragMove(mouseOffset(d3.event));
-    }
-
-    function dragEnd() {
-        mode && mode.dragEnd && mode.dragEnd();
-    }
-
-    function mouseOffset(m) {
-        // if (t) {
-        //     m.x = (-t.x + m.x) / t.k;
-        //     m.y = (-t.y + m.y) / t.k;
-        // }
-        return m;
     }
 
     function createZoom() {
@@ -307,11 +321,10 @@ window.d3Paint = function (elementOrSelector) {
         })
         .scaleExtent([0.1, 1000])
         .on("zoom", function() {
-            t = d3.event.transform;
+            transform = d3.event.transform;
             zoomed();
         });
     }
 };
 
-
-},{"./axes":1,"./mode/circle":2,"./mode/line":3,"./mode/pen":4,"./mode/rect":5}]},{},[6]);
+},{"./axes":1,"./extent":2,"./mode/circle":3,"./mode/line":4,"./mode/pen":5,"./mode/rect":6}]},{},[7]);

@@ -1,5 +1,5 @@
 var createAxes = require('./axes');
-
+var createExtent = require('./extent')
 var modes = {
     circle: require('./mode/circle'),
     rect: require('./mode/rect'),
@@ -15,16 +15,18 @@ window.d3Paint = function (elementOrSelector) {
     var zoomCallbacks = [];
     var containerElement = d3.select(elementOrSelector);
     var svg = containerElement.append('svg')
-        .attr('preserveAspectRatio','xMidYMid meet');
+        .attr('preserveAspectRatio', 'xMidYMid meet');
 
+    var axes = createAxes(svg);
+    var helpers = g('helpers');
+    var canvas = g('canvas');
+    var extent = createExtent(svg);
+    var transform = d3.zoomTransform(svg);
+    svg.call(createZoom());
+    adjustSize();
     window.oncontextmenu = function () {
-        return false;
+        return false
     };
-
-    var helpers = svg.append('g')
-        .classed('helpers', true);
-
-    var t = d3.zoomTransform(svg);
 
     helpers.append('rect')
         .attr('fill', 'rgba(0,0,0,0.2)')
@@ -33,13 +35,6 @@ window.d3Paint = function (elementOrSelector) {
         .attr('width', width)
         .attr('height', height)
         .call(createDrag());
-
-    var canvas = svg.append('g')
-        .classed('canvas', true);
-
-    var axes = createAxes(svg);
-    svg.call(createZoom());
-    adjustSize();
 
     return {
         adjustSize: adjustSize,
@@ -54,11 +49,12 @@ window.d3Paint = function (elementOrSelector) {
     }
 
     function zoomed() {
-        helpers.attr("transform", t);
-        canvas.attr("transform", t);
-        axes.applyZoom(t);
+        helpers.attr("transform", transform);
+        canvas.attr("transform", transform);
+        axes.applyZoom(transform);
+        mode && mode.active && extent.updateExtent(mode.active.node());
         zoomCallbacks.forEach(function (zoomCallback) {
-            zoomCallback(t);
+            zoomCallback(transform);
         });
     }
 
@@ -73,51 +69,35 @@ window.d3Paint = function (elementOrSelector) {
 
     function createDrag() {
         return d3.drag()
-            // .container(function() {
-            //     return this;
-            // })
-            // .subject(function() {
-            //     var p = [
-            //         d3.event.x,
-            //         d3.event.y
-            //     ];
-            //     return [p, p];
-            // })
-            .on("start", dragStart)
-            .on("drag", dragMove)
-            .on("end", dragEnd);
+            .on("start", function () {
+                mode && dragStart();
+            })
+            .on("drag", function () {
+                mode && mode.dragMove(d3.event);
+            })
+            .on("end", function () {
+                mode && dragEnd();
+            });
     }
 
     function dragStart() {
-        if (!mode)
-            return;
-
         var group = canvas.append('g');
-        mode.dragStart(group, mouseOffset(d3.event));
-        // this.createExtent(group);
+        mode.dragStart(group, d3.event);
         applyBrush(mode.active);
     }
 
+    function dragEnd() {
+        extent.updateExtent(mode.active.node());
+    }
+
+    function g(className) {
+        return svg.append('g').classed(className, true);
+    }
+
     function applyBrush(active) {
-        active.attr('stroke-width', 2)
+        active.attr('stroke-width', 3)
             .attr('stroke', 'black')
             .attr('fill', 'transparent')
-    }
-
-    function dragMove() {
-        mode && mode.dragMove && mode.dragMove(mouseOffset(d3.event));
-    }
-
-    function dragEnd() {
-        mode && mode.dragEnd && mode.dragEnd();
-    }
-
-    function mouseOffset(m) {
-        // if (t) {
-        //     m.x = (-t.x + m.x) / t.k;
-        //     m.y = (-t.y + m.y) / t.k;
-        // }
-        return m;
     }
 
     function createZoom() {
@@ -126,9 +106,8 @@ window.d3Paint = function (elementOrSelector) {
         })
         .scaleExtent([0.1, 1000])
         .on("zoom", function() {
-            t = d3.event.transform;
+            transform = d3.event.transform;
             zoomed();
         });
     }
 };
-
