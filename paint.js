@@ -74,12 +74,118 @@ function dragMove(mouse) {
         })
 }
 },{}],3:[function(require,module,exports){
+
+var mode = {
+    active: null,
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, e) {
+
+    mode.active = group.append("line")
+        .classed('figure', true)
+        .attr('x1', e.x)
+        .attr('y1', e.y)
+        .datum(e.subject);
+
+    dragMove(e);
+}
+
+function dragMove(e) {
+    mode.active
+        .attr('x2', e.x)
+        .attr('y2', e.y)
+}
+},{}],4:[function(require,module,exports){
+var line = d3.line().curve(d3.curveBasis);
+
+var ctx;
+
+var mode = {
+    active: null,
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, e) {
+
+    var dataArray = [[e.x, e.y], [e.x, e.y]];
+
+    mode.active = group.append("path")
+        .classed('figure', true)
+        .datum(dataArray);
+
+    ctx = {
+        d: dataArray,
+        active: mode.active,
+        x0: e.x,
+        y0: e.y
+    };
+
+    dragMove(e);
+}
+
+function dragMove(e) {
+
+    var x1 = e.x,
+        y1 = e.y,
+        dx = x1 - ctx.x0,
+        dy = y1 - ctx.y0;
+
+    if (dx * dx + dy * dy > 10)
+        ctx.d.push([ctx.x0 = x1, ctx.y0 = y1]);
+    else
+        ctx.d[ctx.d.length - 1] = [x1, y1];
+
+    ctx.active.attr("d", line);
+}
+},{}],5:[function(require,module,exports){
+
+var mode = {
+    active: null,
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, e) {
+    mode.active = group.append("rect")
+        .classed('figure', true)
+        .datum([[e.x, e.y], [e.x, e.y]]);
+
+    dragMove(e);
+
+}
+
+function dragMove(e) {
+    mode.active
+        .attr('x', function (d) {
+            return Math.min(e.x, d[0][0]);
+        })
+        .attr('y', function (d) {
+            return Math.min(e.y, d[0][1]);
+        })
+        .attr('width', function (d) {
+            return Math.abs(e.x - d[0][0]);
+        })
+        .attr('height', function (d) {
+            return Math.abs(e.y - d[0][1]);
+        })
+}
+},{}],6:[function(require,module,exports){
 var createAxes = require('./axes');
 
 var modes = {
-    circle: require('./circle'),
-    rect: require('./rect'),
-    pen: require('./pen')
+    circle: require('./mode/circle'),
+    rect: require('./mode/rect'),
+    line: require('./mode/line'),
+    pen: require('./mode/pen')
 };
 
 window.d3Paint = function (elementOrSelector) {
@@ -208,8 +314,4 @@ window.d3Paint = function (elementOrSelector) {
 };
 
 
-},{"./axes":1,"./circle":2,"./pen":4,"./rect":5}],4:[function(require,module,exports){
-arguments[4][2][0].apply(exports,arguments)
-},{"dup":2}],5:[function(require,module,exports){
-arguments[4][2][0].apply(exports,arguments)
-},{"dup":2}]},{},[3]);
+},{"./axes":1,"./mode/circle":2,"./mode/line":3,"./mode/pen":4,"./mode/rect":5}]},{},[6]);

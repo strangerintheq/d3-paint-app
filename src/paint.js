@@ -1,9 +1,10 @@
 var createAxes = require('./axes');
 
 var modes = {
-    circle: require('./circle'),
-    rect: require('./rect'),
-    pen: require('./pen')
+    circle: require('./mode/circle'),
+    rect: require('./mode/rect'),
+    line: require('./mode/line'),
+    pen: require('./mode/pen')
 };
 
 window.d3Paint = function (elementOrSelector) {
