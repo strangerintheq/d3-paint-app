@@ -3,7 +3,6 @@ var line = d3.line().curve(d3.curveBasis);
 var ctx;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -14,18 +13,18 @@ function dragStart(group, e) {
 
     var dataArray = [[e.x, e.y], [e.x, e.y]];
 
-    mode.active = group.append("path")
-        .classed('figure', true)
-        .datum(dataArray);
-
     ctx = {
         d: dataArray,
-        active: mode.active,
+        active: group.append("path")
+            .classed('figure', true)
+            .datum(dataArray),
         x0: e.x,
         y0: e.y
     };
 
     dragMove(e);
+
+    return ctx.active;
 }
 
 function dragMove(e) {

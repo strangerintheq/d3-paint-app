@@ -61,30 +61,30 @@ function extent(svg) {
         .attr('stroke-dasharray', '4 5');
 
     return {
-        updateExtent: function (node) {
-            d3.select(node).attr('transform',
-                'rotate(' + 33 + ')')
-            
-            console.log(node.getBBox())
-            var r = node.getBoundingClientRect();
-            var el = svg.node().parentNode;
-            let x = r.x  - el.clientWidth/2 - el.offsetLeft -5;
-            let y = r.y -el.clientHeight/2 - el.offsetTop -5;
-            let w = r.width + 10;
-            let h = r.height + 10;
-            extent.attr('x', x)
-                .attr('y', y)
-                .attr('width', w)
-                .attr('height', h)
-
+        updateExtent: function (paint) {
+            var a = paint.active;
+            var r = a.node().getBoundingClientRect();
+            var b = a.node().getBBox();
+            var n = svg.node().parentNode;
+            a.attr('transform',
+                'translate('+(-b.x)+' '+(-b.y)+')' +
+                'rotate(90 0 0)' +
+                'translate('+(b.x)+' '+(b.y)+')');
+            var pad = 1 + a.attr('stroke-width')/2 * paint.transform.k;
+            var x = r.x - n.clientWidth/2 - n.offsetLeft - pad;
+            var y = r.y - n.clientHeight/2 - n.offsetTop - pad;
+            var w = r.width + pad * 2;
+            var h = r.height + pad * 2;
+            extent.attr('x', x).attr('y', y)
+                .attr('width', w).attr('height', h)
         }
     }
 }
 
 },{}],3:[function(require,module,exports){
+var active;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -92,15 +92,17 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, mouse) {
-    mode.active = group.append("circle")
+    active = group.append("circle")
         .classed('figure', true)
         .datum(mouse);
 
     dragMove(mouse);
+
+    return active;
 }
 
 function dragMove(mouse) {
-    mode.active.attr('cx', function (d) {return d.x;})
+    active.attr('cx', function (d) {return d.x;})
         .attr('cy', function (d) {return d.y;})
         .attr('r', function (d) {
             var x = mouse.x - d.x;
@@ -109,9 +111,9 @@ function dragMove(mouse) {
         })
 }
 },{}],4:[function(require,module,exports){
+var active;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -120,17 +122,19 @@ module.exports = mode;
 
 function dragStart(group, e) {
 
-    mode.active = group.append("line")
+    active = group.append("line")
         .classed('figure', true)
         .attr('x1', e.x)
         .attr('y1', e.y)
         .datum(e.subject);
 
     dragMove(e);
+
+    return active;
 }
 
 function dragMove(e) {
-    mode.active
+    active
         .attr('x2', e.x)
         .attr('y2', e.y)
 }
@@ -140,7 +144,6 @@ var line = d3.line().curve(d3.curveBasis);
 var ctx;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -151,18 +154,18 @@ function dragStart(group, e) {
 
     var dataArray = [[e.x, e.y], [e.x, e.y]];
 
-    mode.active = group.append("path")
-        .classed('figure', true)
-        .datum(dataArray);
-
     ctx = {
         d: dataArray,
-        active: mode.active,
+        active: group.append("path")
+            .classed('figure', true)
+            .datum(dataArray),
         x0: e.x,
         y0: e.y
     };
 
     dragMove(e);
+
+    return ctx.active;
 }
 
 function dragMove(e) {
@@ -180,9 +183,9 @@ function dragMove(e) {
     ctx.active.attr("d", line);
 }
 },{}],6:[function(require,module,exports){
+var active;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -190,15 +193,16 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, e) {
-    mode.active = group.append("rect")
+    active = group.append("rect")
         .classed('figure', true)
         .datum([[e.x, e.y], [e.x, e.y]]);
 
     dragMove(e);
+    return active;
 }
 
 function dragMove(e) {
-    mode.active
+    active
         .attr('x', function (d) {
             return Math.min(e.x, d[0][0]);
         })
@@ -214,7 +218,8 @@ function dragMove(e) {
 }
 },{}],7:[function(require,module,exports){
 var createAxes = require('./axes');
-var createExtent = require('./extent')
+var createExtent = require('./extent');
+
 var modes = {
     circle: require('./mode/circle'),
     rect: require('./mode/rect'),
@@ -236,9 +241,8 @@ window.d3Paint = function (elementOrSelector) {
     var helpers = g('helpers');
     var canvas = g('canvas');
     var extent = createExtent(svg);
-    var transform = d3.zoomTransform(svg);
     svg.call(createZoom());
-    adjustSize();
+
     window.oncontextmenu = function () {
         return false
     };
@@ -251,7 +255,9 @@ window.d3Paint = function (elementOrSelector) {
         .attr('height', height)
         .call(createDrag());
 
-    return {
+    var paint = {
+        transform : d3.zoomTransform(svg),
+        active: null,
         adjustSize: adjustSize,
         onZoom: onZoom,
         setMode: function (newMode) {
@@ -259,17 +265,21 @@ window.d3Paint = function (elementOrSelector) {
         }
     };
 
+    adjustSize();
+
+    return paint;
+
     function onZoom(onZoomFn) {
         zoomCallbacks.push(onZoomFn);
     }
 
     function zoomed() {
-        helpers.attr("transform", transform);
-        canvas.attr("transform", transform);
-        axes.applyZoom(transform);
-        mode && mode.active && extent.updateExtent(mode.active.node());
+        helpers.attr("transform", paint.transform);
+        canvas.attr("transform", paint.transform);
+        axes.applyZoom(paint.transform);
+        paint.active && extent.updateExtent(paint);
         zoomCallbacks.forEach(function (zoomCallback) {
-            zoomCallback(transform);
+            zoomCallback(paint.transform);
         });
     }
 
@@ -297,12 +307,12 @@ window.d3Paint = function (elementOrSelector) {
 
     function dragStart() {
         var group = canvas.append('g');
-        mode.dragStart(group, d3.event);
-        applyBrush(mode.active);
+        paint.active = mode.dragStart(group, d3.event);
+        applyBrush(paint.active);
     }
 
     function dragEnd() {
-        extent.updateExtent(mode.active.node());
+        extent.updateExtent(paint);
     }
 
     function g(className) {
@@ -321,7 +331,7 @@ window.d3Paint = function (elementOrSelector) {
         })
         .scaleExtent([0.1, 1000])
         .on("zoom", function() {
-            transform = d3.event.transform;
+            paint.transform = d3.event.transform;
             zoomed();
         });
     }

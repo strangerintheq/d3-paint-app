@@ -1,6 +1,6 @@
+var active;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -8,15 +8,17 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, mouse) {
-    mode.active = group.append("circle")
+    active = group.append("circle")
         .classed('figure', true)
         .datum(mouse);
 
     dragMove(mouse);
+
+    return active;
 }
 
 function dragMove(mouse) {
-    mode.active.attr('cx', function (d) {return d.x;})
+    active.attr('cx', function (d) {return d.x;})
         .attr('cy', function (d) {return d.y;})
         .attr('r', function (d) {
             var x = mouse.x - d.x;

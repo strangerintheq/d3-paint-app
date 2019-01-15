@@ -12,22 +12,22 @@ function extent(svg) {
         .attr('stroke-dasharray', '4 5');
 
     return {
-        updateExtent: function (node) {
-
-
-
-            console.log(node.getBBox())
-            var r = node.getBoundingClientRect();
-            var el = svg.node().parentNode;
-            let x = r.x  - el.clientWidth/2 - el.offsetLeft -5;
-            let y = r.y -el.clientHeight/2 - el.offsetTop -5;
-            let w = r.width + 10;
-            let h = r.height + 10;
-            extent.attr('x', x)
-                .attr('y', y)
-                .attr('width', w)
-                .attr('height', h)
-
+        updateExtent: function (paint) {
+            var a = paint.active;
+            var r = a.node().getBoundingClientRect();
+            var b = a.node().getBBox();
+            var n = svg.node().parentNode;
+            // a.attr('transform',
+            //     'translate('+(-b.x)+' '+(-b.y)+')' +
+            //     'rotate(90 0 0)' +
+            //     'translate('+(b.x)+' '+(b.y)+')');
+            var pad = 1 + a.attr('stroke-width')/2 * paint.transform.k;
+            var x = r.x - n.clientWidth/2 - n.offsetLeft - pad;
+            var y = r.y - n.clientHeight/2 - n.offsetTop - pad;
+            var w = r.width + pad * 2;
+            var h = r.height + pad * 2;
+            extent.attr('x', x).attr('y', y)
+                .attr('width', w).attr('height', h)
         }
     }
 }

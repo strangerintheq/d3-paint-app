@@ -1,5 +1,6 @@
 var createAxes = require('./axes');
-var createExtent = require('./extent')
+var createExtent = require('./extent');
+
 var modes = {
     circle: require('./mode/circle'),
     rect: require('./mode/rect'),
@@ -21,9 +22,8 @@ window.d3Paint = function (elementOrSelector) {
     var helpers = g('helpers');
     var canvas = g('canvas');
     var extent = createExtent(svg);
-    var transform = d3.zoomTransform(svg);
     svg.call(createZoom());
-    adjustSize();
+
     window.oncontextmenu = function () {
         return false
     };
@@ -36,7 +36,9 @@ window.d3Paint = function (elementOrSelector) {
         .attr('height', height)
         .call(createDrag());
 
-    return {
+    var paint = {
+        transform : d3.zoomTransform(svg),
+        active: null,
         adjustSize: adjustSize,
         onZoom: onZoom,
         setMode: function (newMode) {
@@ -44,17 +46,21 @@ window.d3Paint = function (elementOrSelector) {
         }
     };
 
+    adjustSize();
+
+    return paint;
+
     function onZoom(onZoomFn) {
         zoomCallbacks.push(onZoomFn);
     }
 
     function zoomed() {
-        helpers.attr("transform", transform);
-        canvas.attr("transform", transform);
-        axes.applyZoom(transform);
-        mode && mode.active && extent.updateExtent(mode.active.node());
+        helpers.attr("transform", paint.transform);
+        canvas.attr("transform", paint.transform);
+        axes.applyZoom(paint.transform);
+        paint.active && extent.updateExtent(paint);
         zoomCallbacks.forEach(function (zoomCallback) {
-            zoomCallback(transform);
+            zoomCallback(paint.transform);
         });
     }
 
@@ -82,12 +88,12 @@ window.d3Paint = function (elementOrSelector) {
 
     function dragStart() {
         var group = canvas.append('g');
-        mode.dragStart(group, d3.event);
-        applyBrush(mode.active);
+        paint.active = mode.dragStart(group, d3.event);
+        applyBrush(paint.active);
     }
 
     function dragEnd() {
-        extent.updateExtent(mode.active.node());
+        extent.updateExtent(paint);
     }
 
     function g(className) {
@@ -106,7 +112,7 @@ window.d3Paint = function (elementOrSelector) {
         })
         .scaleExtent([0.1, 1000])
         .on("zoom", function() {
-            transform = d3.event.transform;
+            paint.transform = d3.event.transform;
             zoomed();
         });
     }

@@ -1,6 +1,6 @@
+var active;
 
 var mode = {
-    active: null,
     dragStart: dragStart,
     dragMove: dragMove
 };
@@ -8,15 +8,16 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, e) {
-    mode.active = group.append("rect")
+    active = group.append("rect")
         .classed('figure', true)
         .datum([[e.x, e.y], [e.x, e.y]]);
 
     dragMove(e);
+    return active;
 }
 
 function dragMove(e) {
-    mode.active
+    active
         .attr('x', function (d) {
             return Math.min(e.x, d[0][0]);
         })
