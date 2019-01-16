@@ -35,6 +35,7 @@ function axes(svg) {
 
             d3.select('g.axis--x')
                 .attr('transform', 'translate(0,' + (-h/2) +')');
+
             d3.select('g.axis--y')
                 .attr('transform', 'translate(' + (-w/2) + ',0)');
         },

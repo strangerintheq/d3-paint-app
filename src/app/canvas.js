@@ -38,7 +38,7 @@ function canvas(ctx) {
             .on("drag", drag);
 
         var group = ctx.canvas.append('g')
-            .datum({x: 0, y: 0})
+            .datum({x: 0, y: 0, r: 77})
             .call(dragger);
 
         ctx.active = ctx.mode.dragStart(group, d3.event);
@@ -46,13 +46,13 @@ function canvas(ctx) {
         applyBrush(ctx.active);
 
         function drag(d) {
-            d.x = d3.event.x;
-            d.y = d3.event.y;
+            //d.x = d3.event.x;
+            //d.y = d3.event.y;
+            d.r = d3.event.y;
             ctx.active.attr('transform', getTransform(d));
             ctx.extent.updateExtent(ctx);
         }
     }
-
 
     function applyBrush(active) {
         active.attr('stroke-width', 3)
@@ -61,11 +61,16 @@ function canvas(ctx) {
     }
 
     function getTransform(d) {
-        return 'translate(' + d.x +',' + d.y + ')'
+        var r = ctx.active.node().getBBox();
+        var x = r.x + r.width / 2;
+        var y = r.y + r.height / 2;
+        return'rotate(' + d.r +',' + x + ',' + y + ')' +
+            'translate(' + d.x +',' + d.y + ')' ;
     }
 
     function dragEnd() {
         ctx.extent.updateExtent(ctx);
+        ctx.broker.fire(ctx.broker.events.MODE, 'null')
     }
 
 }
