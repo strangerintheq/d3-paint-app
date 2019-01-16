@@ -65,12 +65,14 @@ function extent(svg) {
             var a = paint.active;
             var r = a.node().getBoundingClientRect();
             var b = a.node().getBBox();
+            var thik = a.attr('stroke-width') ||
+                d3.select(a.node().firstChild).attr('stroke-width');
             var n = svg.node().parentNode;
             // a.attr('transform',
             //     'translate('+(-b.x)+' '+(-b.y)+')' +
             //     'rotate(90 0 0)' +
             //     'translate('+(b.x)+' '+(b.y)+')');
-            var pad = 1 + a.attr('stroke-width')/2 * paint.transform.k;
+            var pad = 1 + thik/2 * paint.transform.k;
             var x = r.x - n.clientWidth/2 - n.offsetLeft - pad;
             var y = r.y - n.clientHeight/2 - n.offsetTop - pad;
             var w = r.width + pad * 2;
@@ -306,21 +308,26 @@ window.d3Paint = function (elementOrSelector) {
     }
 
     function dragStart() {
-        var group = canvas.append('g');
-        paint.active = mode.dragStart(group, d3.event)
-            .call(d3.drag()
-                .on("start", function () {
-                    paint.active = d3.select(this);
-                    extent.updateExtent(paint);
-                })
-                .on("drag", function () {
+        var group = canvas.append('g').call(d3.drag()
+            .on("start", function () {
+                paint.active = d3.select(this);
+                extent.updateExtent(paint);
+            })
+            .on("drag", function () {
+                d3.select(this).attr('transform', getTransform())
+                extent.updateExtent(paint);
+            }));
 
-                })
-                .on("end", function () {
-                   
-                }));
+        paint.active = mode
+            .dragStart(group, d3.event);
 
         applyBrush(paint.active);
+    }
+
+    function getTransform() {
+        var x = 10;
+        var y = 10;
+        return 'translate(' + x +',' + y + ')'
     }
 
     function dragEnd() {

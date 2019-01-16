@@ -87,19 +87,18 @@ window.d3Paint = function (elementOrSelector) {
     }
 
     function dragStart() {
-        var group = canvas.append('g');
-        paint.active = mode.dragStart(group, d3.event)
-            .call(d3.drag()
-                .on("start", function () {
-                    paint.active = d3.select(this);
-                    extent.updateExtent(paint);
-                })
-                .on("drag", function () {
-                    d3.select(this).attr('transform', getTransform())
-                })
-                .on("end", function () {
+        var group = canvas.append('g').call(d3.drag()
+            .on("start", function () {
+                paint.active = d3.select(this);
+                extent.updateExtent(paint);
+            })
+            .on("drag", function () {
+                d3.select(this).attr('transform', getTransform());
+                extent.updateExtent(paint);
+            }));
 
-                }));
+        paint.active = mode
+            .dragStart(group, d3.event);
 
         applyBrush(paint.active);
     }
