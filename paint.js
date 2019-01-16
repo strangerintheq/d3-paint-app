@@ -47,6 +47,37 @@ function axes(svg) {
     }
 }
 },{}],2:[function(require,module,exports){
+let events = {
+    MODE: 'mode',
+    RESIZE: 'resize'
+};
+
+module.exports = broker;
+
+function broker() {
+
+    var listeners = {};
+
+    return {
+        events: events,
+
+        fire: function (evt, arg) {
+            listeners[evt] && listeners[evt].forEach(invoke);
+
+            function invoke(listener) {
+                listener(arg);
+            }
+        },
+
+        on: function (evt, func) {
+            !listeners[evt] && (listeners[evt] = []);
+            listeners[evt].push(func);
+        }
+    }
+}
+
+
+},{}],3:[function(require,module,exports){
 // canvas.js
 
 var width = 800;
@@ -74,19 +105,30 @@ function canvas(ctx) {
             }));
 
     function dragStart() {
-        var group = ctx.canvas.append('g').call(d3.drag()
-            .on("start", function () {
-                ctx.active = d3.select(this);
-                ctx.extent.updateExtent(ctx);
+
+        var dragger = d3.drag()
+            .subject(function (d) {
+                return d;
             })
-            .on("drag", function () {
-                d3.select(this).attr('transform', getTransform());
-                ctx.extent.updateExtent(ctx);
-            }));
+            .on("start", function (d) {
+                ctx.active = d3.select(this);
+                drag(d);
+            })
+            .on("drag", drag);
+
+        var group = ctx.canvas.append('g')
+            .datum({x: 0, y: 0}).call(dragger);
 
         ctx.active = ctx.mode.dragStart(group, d3.event);
 
         applyBrush(ctx.active);
+
+        function drag(d) {
+            d.x = d3.event.x;
+            d.y = d3.event.y;
+            ctx.active.attr('transform', getTransform(d));
+            ctx.extent.updateExtent(ctx);
+        }
     }
 
 
@@ -96,10 +138,8 @@ function canvas(ctx) {
             .attr('fill', 'transparent')
     }
 
-    function getTransform() {
-        var x = 0;
-        var y = 0;
-        return 'translate(' + x +',' + y + ')'
+    function getTransform(d) {
+        return 'translate(' + d.x +',' + d.y + ')'
     }
 
     function dragEnd() {
@@ -113,7 +153,7 @@ function canvas(ctx) {
 
 
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 // extent.js
 
 module.exports = extent;
@@ -152,199 +192,26 @@ function extent(ctx) {
                 .attr('y', y)
                 .attr('width', w)
                 .attr('height', h)
+
         }
     }
 
 }
 
-},{}],4:[function(require,module,exports){
-var createAxes = require('./axes');
-var createExtent = require('./extent');
-var createCanvas = require('./canvas');
-var createTransformer = require('./transformer');
-
+},{}],5:[function(require,module,exports){
 var modes = {
-    circle: require('./mode/circle'),
-    rect: require('./mode/rect'),
-    line: require('./mode/line'),
-    pen: require('./mode/pen')
+    circle: require('../mode/circle'),
+    rect: require('../mode/rect'),
+    line: require('../mode/line'),
+    pen: require('../mode/pen')
 };
 
-window.d3Paint = function (elementOrSelector) {
-
-    var ctx = {};
-    ctx.containerElement = d3.select(elementOrSelector);
-    ctx.svg = ctx.containerElement.append('svg')
-        .attr('preserveAspectRatio', 'xMidYMid meet');
-    ctx.helpers = g('helpers');
-    ctx.canvas = g('canvas');
-    ctx.axes = createAxes(ctx.svg);
-    ctx.extent = createExtent(ctx);
-    ctx.transformer = createTransformer(ctx);
-
-    ctx.transform = d3.zoomTransform(ctx.svg);
-    ctx.mode = null; // current mode
-    ctx.active = null; // selected shape
-
-    createCanvas(ctx);
-
-    ctx.transformer.adjustSize();
-
-    window.oncontextmenu = function () {
-        return false
-    };
-
-    return {
-        adjustSize: ctx.transformer.adjustSize,
-        onTransform: ctx.transformer.onTransform,
-        setMode: setMode
-    };
-
-    function setMode(newMode) {
+module.exports = function (ctx) {
+    ctx.broker.on(ctx.broker.events.MODE, function (newMode) {
         ctx.mode = modes[newMode];
-    }
-
-    function g(className) {
-        return ctx.svg.append('g').classed(className, true);
-    }
+    });
 };
-
-},{"./axes":1,"./canvas":2,"./extent":3,"./mode/circle":5,"./mode/line":6,"./mode/pen":7,"./mode/rect":8,"./transformer":9}],5:[function(require,module,exports){
-var active;
-
-var mode = {
-    dragStart: dragStart,
-    dragMove: dragMove
-};
-
-module.exports = mode;
-
-function dragStart(group, mouse) {
-    active = group.append("circle")
-        .classed('figure', true)
-        .datum(mouse);
-
-    dragMove(mouse);
-
-    return active;
-}
-
-function dragMove(mouse) {
-    active.attr('cx', function (d) {return d.x;})
-        .attr('cy', function (d) {return d.y;})
-        .attr('r', function (d) {
-            var x = mouse.x - d.x;
-            var y = mouse.y - d.y;
-            return Math.sqrt(x*x + y*y);
-        })
-}
-},{}],6:[function(require,module,exports){
-var active;
-
-var mode = {
-    dragStart: dragStart,
-    dragMove: dragMove
-};
-
-module.exports = mode;
-
-function dragStart(group, e) {
-
-    active = group.append("line")
-        .classed('figure', true)
-        .attr('x1', e.x)
-        .attr('y1', e.y)
-        .datum(e.subject);
-
-    dragMove(e);
-
-    return active;
-}
-
-function dragMove(e) {
-    active
-        .attr('x2', e.x)
-        .attr('y2', e.y)
-}
-},{}],7:[function(require,module,exports){
-var line = d3.line().curve(d3.curveBasis);
-
-var ctx;
-
-var mode = {
-    dragStart: dragStart,
-    dragMove: dragMove
-};
-
-module.exports = mode;
-
-function dragStart(group, e) {
-
-    var dataArray = [[e.x, e.y], [e.x, e.y]];
-
-    ctx = {
-        d: dataArray,
-        active: group.append("path")
-            .classed('figure', true)
-            .datum(dataArray),
-        x0: e.x,
-        y0: e.y
-    };
-
-    dragMove(e);
-
-    return ctx.active;
-}
-
-function dragMove(e) {
-
-    var x1 = e.x,
-        y1 = e.y,
-        dx = x1 - ctx.x0,
-        dy = y1 - ctx.y0;
-
-    if (dx * dx + dy * dy > 10)
-        ctx.d.push([ctx.x0 = x1, ctx.y0 = y1]);
-    else
-        ctx.d[ctx.d.length - 1] = [x1, y1];
-
-    ctx.active.attr("d", line);
-}
-},{}],8:[function(require,module,exports){
-var active;
-
-var mode = {
-    dragStart: dragStart,
-    dragMove: dragMove
-};
-
-module.exports = mode;
-
-function dragStart(group, e) {
-    active = group.append("rect")
-        .classed('figure', true)
-        .datum([[e.x, e.y], [e.x, e.y]]);
-
-    dragMove(e);
-    return active;
-}
-
-function dragMove(e) {
-    active
-        .attr('x', function (d) {
-            return Math.min(e.x, d[0][0]);
-        })
-        .attr('y', function (d) {
-            return Math.min(e.y, d[0][1]);
-        })
-        .attr('width', function (d) {
-            return Math.abs(e.x - d[0][0]);
-        })
-        .attr('height', function (d) {
-            return Math.abs(e.y - d[0][1]);
-        })
-}
-},{}],9:[function(require,module,exports){
+},{"../mode/circle":8,"../mode/line":9,"../mode/pen":10,"../mode/rect":11}],6:[function(require,module,exports){
 module.exports = transformer;
 
 function transformer(ctx) {
@@ -395,4 +262,185 @@ function transformer(ctx) {
 }
 
 
-},{}]},{},[4]);
+},{}],7:[function(require,module,exports){
+var createAxes = require('./app/axes');
+var createExtent = require('./app/extent');
+var createCanvas = require('./app/canvas');
+var createTransformer = require('./app/transformer');
+var createEvents = require('./app/broker');
+var createModes = require('./app/modes');
+
+window.d3Paint = function (elementOrSelector) {
+
+    var ctx = {};
+    ctx.mode = null; // current mode
+    ctx.active = null; // selected shape
+
+    ctx.broker = createEvents();
+    ctx.containerElement = d3.select(elementOrSelector);
+    ctx.svg = ctx.containerElement.append('svg')
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+    ctx.helpers = g('helpers');
+    ctx.canvas = g('canvas');
+    ctx.axes = createAxes(ctx.svg);
+    ctx.extent = createExtent(ctx);
+    ctx.transformer = createTransformer(ctx);
+
+    ctx.transform = d3.zoomTransform(ctx.svg);
+
+    createModes(ctx);
+    createCanvas(ctx);
+
+    ctx.broker.fire(ctx.broker.events.RESIZE);
+
+    window.oncontextmenu = function () {
+        return false
+    };
+
+    return ctx.broker;
+
+    function g(className) {
+        return ctx.svg.append('g').classed(className, true);
+    }
+
+    function pipe(d) {
+        return d;
+    }
+};
+
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":4,"./app/modes":5,"./app/transformer":6}],8:[function(require,module,exports){
+var active;
+
+var mode = {
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, mouse) {
+    active = group.append("circle")
+        .classed('figure', true)
+        .datum(mouse);
+
+    dragMove(mouse);
+
+    return active;
+}
+
+function dragMove(mouse) {
+    active.attr('cx', function (d) {return d.x;})
+        .attr('cy', function (d) {return d.y;})
+        .attr('r', function (d) {
+            var x = mouse.x - d.x;
+            var y = mouse.y - d.y;
+            return Math.sqrt(x*x + y*y);
+        })
+}
+},{}],9:[function(require,module,exports){
+var active;
+
+var mode = {
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, e) {
+
+    active = group.append("line")
+        .classed('figure', true)
+        .attr('x1', e.x)
+        .attr('y1', e.y)
+        .datum(e.subject);
+
+    dragMove(e);
+
+    return active;
+}
+
+function dragMove(e) {
+    active
+        .attr('x2', e.x)
+        .attr('y2', e.y)
+}
+},{}],10:[function(require,module,exports){
+var line = d3.line().curve(d3.curveBasis);
+
+var ctx;
+
+var mode = {
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, e) {
+
+    var dataArray = [[e.x, e.y], [e.x, e.y]];
+
+    ctx = {
+        d: dataArray,
+        active: group.append("path")
+            .classed('figure', true)
+            .datum(dataArray),
+        x0: e.x,
+        y0: e.y
+    };
+
+    dragMove(e);
+
+    return ctx.active;
+}
+
+function dragMove(e) {
+
+    var x1 = e.x,
+        y1 = e.y,
+        dx = x1 - ctx.x0,
+        dy = y1 - ctx.y0;
+
+    if (dx * dx + dy * dy > 10)
+        ctx.d.push([ctx.x0 = x1, ctx.y0 = y1]);
+    else
+        ctx.d[ctx.d.length - 1] = [x1, y1];
+
+    ctx.active.attr("d", line);
+}
+},{}],11:[function(require,module,exports){
+var active;
+
+var mode = {
+    dragStart: dragStart,
+    dragMove: dragMove
+};
+
+module.exports = mode;
+
+function dragStart(group, e) {
+    active = group.append("rect")
+        .classed('figure', true)
+        .datum([[e.x, e.y], [e.x, e.y]]);
+
+    dragMove(e);
+    return active;
+}
+
+function dragMove(e) {
+    active
+        .attr('x', function (d) {
+            return Math.min(e.x, d[0][0]);
+        })
+        .attr('y', function (d) {
+            return Math.min(e.y, d[0][1]);
+        })
+        .attr('width', function (d) {
+            return Math.abs(e.x - d[0][0]);
+        })
+        .attr('height', function (d) {
+            return Math.abs(e.y - d[0][1]);
+        })
+}
+},{}]},{},[7]);

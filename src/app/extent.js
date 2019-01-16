@@ -36,6 +36,7 @@ function extent(ctx) {
                 .attr('y', y)
                 .attr('width', w)
                 .attr('height', h)
+
         }
     }
 

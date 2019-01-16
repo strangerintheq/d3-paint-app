@@ -13,26 +13,32 @@ var map = new mapboxgl.Map({
 
 var paint = d3Paint("#paint");
 
-window.addEventListener('resize', paint.adjustSize);
+window.addEventListener('resize',
+    paint.fire.bind(paint, 'resize'));
 
-paint.onTransform(function (t) {
+paint.on('transform', function (transform) {
     var merc = Math.cos(map.transform._center.lat*Math.PI/180);
-    var z = zoom + Math.log2(t.k);
+    var z = zoom + Math.log2(transform.k);
     var s = Math.pow(2, z) * 256 / 180 / merc;
     map.jumpTo({
         center: [
-            lon - t.x / s / merc,
-            lat + t.y / s
+            lon - transform.x / s / merc,
+            lat + transform.y / s
         ],
         zoom: z
     });
 });
 
-d3.selectAll('button').each(function () {
+paint.on('mode', function (mode) {
+
+});
+
+d3.selectAll('.controls button').each(function () {
     let btn = d3.select(this);
+    btn.attr('id', btn.html());
     btn.on('click', function () {
         let id = btn.attr('id');
-        paint.setMode(id);
+        paint.fire('mode', id);
         d3.select('#currentMode').text('currentMode: ' + id)
     })
 });

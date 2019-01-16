@@ -6,6 +6,9 @@ var height = 600;
 module.exports = canvas;
 
 function canvas(ctx) {
+
+    var canvas = g('canvas');
+
     ctx.helpers.append('rect')
         .classed('canvas', true)
         .attr('fill', 'rgba(0,0,0,0.2)')
@@ -25,19 +28,31 @@ function canvas(ctx) {
             }));
 
     function dragStart() {
-        var group = ctx.canvas.append('g').call(d3.drag()
-            .on("start", function () {
-                ctx.active = d3.select(this);
-                ctx.extent.updateExtent(ctx);
+
+        var dragger = d3.drag()
+            .subject(function (d) {
+                return d;
             })
-            .on("drag", function () {
-                d3.select(this).attr('transform', getTransform());
-                ctx.extent.updateExtent(ctx);
-            }));
+            .on("start", function (d) {
+                ctx.active = d3.select(this);
+                drag(d);
+            })
+            .on("drag", drag);
+
+        var group = canvas.append('g')
+            .datum({x: 0, y: 0})
+            .call(dragger);
 
         ctx.active = ctx.mode.dragStart(group, d3.event);
 
         applyBrush(ctx.active);
+
+        function drag(d) {
+            d.x = d3.event.x;
+            d.y = d3.event.y;
+            ctx.active.attr('transform', getTransform(d));
+            ctx.extent.updateExtent(ctx);
+        }
     }
 
 
@@ -47,10 +62,8 @@ function canvas(ctx) {
             .attr('fill', 'transparent')
     }
 
-    function getTransform() {
-        var x = 0;
-        var y = 0;
-        return 'translate(' + x +',' + y + ')'
+    function getTransform(d) {
+        return 'translate(' + d.x +',' + d.y + ')'
     }
 
     function dragEnd() {
