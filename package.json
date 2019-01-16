@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "browserify src/paint > paint.js"
+    "build": "browserify src/index > paint.js"
   },
   "author": "",
   "license": "ISC",

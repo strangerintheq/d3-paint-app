@@ -15,7 +15,7 @@ var paint = d3Paint("#paint");
 
 window.addEventListener('resize', paint.adjustSize);
 
-paint.onZoom(function (t) {
+paint.onTransform(function (t) {
     var merc = Math.cos(map.transform._center.lat*Math.PI/180);
     var z = zoom + Math.log2(t.k);
     var s = Math.pow(2, z) * 256 / 180 / merc;
