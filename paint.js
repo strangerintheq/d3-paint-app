@@ -66,10 +66,10 @@ function extent(svg) {
             var r = a.node().getBoundingClientRect();
             var b = a.node().getBBox();
             var n = svg.node().parentNode;
-            a.attr('transform',
-                'translate('+(-b.x)+' '+(-b.y)+')' +
-                'rotate(90 0 0)' +
-                'translate('+(b.x)+' '+(b.y)+')');
+            // a.attr('transform',
+            //     'translate('+(-b.x)+' '+(-b.y)+')' +
+            //     'rotate(90 0 0)' +
+            //     'translate('+(b.x)+' '+(b.y)+')');
             var pad = 1 + a.attr('stroke-width')/2 * paint.transform.k;
             var x = r.x - n.clientWidth/2 - n.offsetLeft - pad;
             var y = r.y - n.clientHeight/2 - n.offsetTop - pad;
@@ -307,7 +307,19 @@ window.d3Paint = function (elementOrSelector) {
 
     function dragStart() {
         var group = canvas.append('g');
-        paint.active = mode.dragStart(group, d3.event);
+        paint.active = mode.dragStart(group, d3.event)
+            .call(d3.drag()
+                .on("start", function () {
+                    paint.active = d3.select(this);
+                    extent.updateExtent(paint);
+                })
+                .on("drag", function () {
+
+                })
+                .on("end", function () {
+                   
+                }));
+
         applyBrush(paint.active);
     }
 

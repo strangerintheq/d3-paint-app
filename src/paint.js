@@ -88,8 +88,26 @@ window.d3Paint = function (elementOrSelector) {
 
     function dragStart() {
         var group = canvas.append('g');
-        paint.active = mode.dragStart(group, d3.event);
+        paint.active = mode.dragStart(group, d3.event)
+            .call(d3.drag()
+                .on("start", function () {
+                    paint.active = d3.select(this);
+                    extent.updateExtent(paint);
+                })
+                .on("drag", function () {
+                    d3.select(this).attr('transform', getTransform())
+                })
+                .on("end", function () {
+
+                }));
+
         applyBrush(paint.active);
+    }
+
+    function getTransform() {
+        var x = 0;
+        var y = 0;
+        return 'translate(' + x +',' + y + ')'
     }
 
     function dragEnd() {
