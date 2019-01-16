@@ -2,27 +2,16 @@ module.exports = transformer;
 
 function transformer(ctx) {
 
-    var zoomCallbacks = [];
-
     ctx.svg.call(createZoom());
 
-    return {
-        adjustSize: adjustSize,
-        onTransform: onTransform
-    };
+    ctx.broker.on(ctx.broker.events.RESIZE, adjustSize);
 
-    function onTransform(onZoomFn) {
-        zoomCallbacks.push(onZoomFn);
-    }
-
-    function zoomed() {
+    function applyTransform() {
         ctx.helpers.attr("transform", ctx.transform);
         ctx.canvas.attr("transform", ctx.transform);
         ctx.axes.applyZoom(ctx.transform);
         ctx.active && ctx.extent.updateExtent(ctx);
-        zoomCallbacks.forEach(function (zoomCallback) {
-            zoomCallback(ctx.transform);
-        });
+        ctx.broker.fire(ctx.broker.events.TRANSFORM, ctx.transform)
     }
 
     function adjustSize() {
@@ -31,7 +20,7 @@ function transformer(ctx) {
         ctx.svg.attr('width', w).attr('height', h)
             .attr('viewBox', -w/2 + ' ' + -h/2 + ' ' + w + ' ' + h);
         ctx.axes.applySize(w, h);
-        zoomed()
+        applyTransform()
     }
 
     function createZoom() {
@@ -42,7 +31,7 @@ function transformer(ctx) {
             .scaleExtent([0.1, 100])
             .on("zoom", function() {
                 ctx.transform = d3.event.transform;
-                zoomed();
+                applyTransform();
             });
     }
 }

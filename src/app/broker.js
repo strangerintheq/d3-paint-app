@@ -1,6 +1,7 @@
 let events = {
     MODE: 'mode',
-    RESIZE: 'resize'
+    RESIZE: 'resize',
+    TRANSFORM: 'transform'
 };
 
 module.exports = broker;

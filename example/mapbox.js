@@ -30,16 +30,17 @@ paint.on('transform', function (transform) {
 });
 
 paint.on('mode', function (mode) {
-
+    d3.selectAll('button').style('color', function () {
+        d3.select('#currentMode').text('currentMode: ' + mode)
+        return d3.select(this).attr('id') === mode ? 'red' : 'black';
+    })
 });
 
-d3.selectAll('.controls button').each(function () {
+d3.selectAll('button').each(function () {
     let btn = d3.select(this);
     btn.attr('id', btn.html());
     btn.on('click', function () {
-        let id = btn.attr('id');
-        paint.fire('mode', id);
-        d3.select('#currentMode').text('currentMode: ' + id)
+        paint.fire('mode', btn.attr('id'));
     })
 });
 

@@ -7,8 +7,6 @@ module.exports = canvas;
 
 function canvas(ctx) {
 
-    var canvas = g('canvas');
-
     ctx.helpers.append('rect')
         .classed('canvas', true)
         .attr('fill', 'rgba(0,0,0,0.2)')
@@ -39,7 +37,7 @@ function canvas(ctx) {
             })
             .on("drag", drag);
 
-        var group = canvas.append('g')
+        var group = ctx.canvas.append('g')
             .datum({x: 0, y: 0})
             .call(dragger);
 

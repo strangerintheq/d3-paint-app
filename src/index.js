@@ -15,13 +15,12 @@ window.d3Paint = function (elementOrSelector) {
     ctx.svg = ctx.containerElement.append('svg')
         .attr('preserveAspectRatio', 'xMidYMid meet');
     ctx.helpers = g('helpers');
-
+    ctx.canvas = g('canvas');
     ctx.axes = createAxes(ctx.svg);
     ctx.extent = createExtent(ctx);
-    ctx.transformer = createTransformer(ctx);
-
     ctx.transform = d3.zoomTransform(ctx.svg);
 
+    createTransformer(ctx);
     createModes(ctx);
     createCanvas(ctx);
 
