@@ -178,19 +178,11 @@ module.exports = {
 
 module.exports = extent;
 
-var placementKeys = [
-    ['nw', 0, 0],
-    ['w', 0, 1],
-    ['sw', 0, 1],
-    ['s', 1, 0],
-    ['se', 1, 0],
-    ['e', 0, -1],
-    ['ne', 0, -1],
-    ['n', -1, 0],
-    ['r', 0, -15]
-];
+var rotate = require('./rotate');
 
 function extent(ctx) {
+
+
 
     var pt = ctx.svg.node().createSVGPoint();
 
@@ -205,6 +197,18 @@ function extent(ctx) {
         .call(circle)
         .attr('pointer-events', 'none');
 
+    var placementKeys = [
+        ['nw', 0, 0],
+        ['w', 0, 1],
+        ['sw', 0, 1],
+        ['s', 1, 0],
+        ['se', 1, 0],
+        ['e', 0, -1],
+        ['ne', 0, -1],
+        ['n', -1, 0],
+        ['r', 0, -15, rotate(ctx, center)]
+    ];
+
     extent.selectAll('circle.knob')
         .data(placementKeys)
         .enter()
@@ -212,15 +216,9 @@ function extent(ctx) {
         .call(circle)
         .attr('cursor', 'pointer')
         .each(function (d) {
-
             var knob = d3.select(this);
             knob.classed('knob ' + d[0], true);
-
-            if (d[0] !== 'r')
-                return;
-
-            knob.call(dragKnob(knob));
-
+            d[3] && knob.call(d[3](knob));
         });
 
     return {
@@ -266,7 +264,43 @@ function extent(ctx) {
         path.attr('d', d + "Z");
     }
 
-    function dragKnob(knob) {
+
+    function circle(el) {
+        el.call(style)
+            .attr('display', 'none')
+            .attr('r', 5)
+    }
+
+    function style(el) {
+        el.attr('stroke', '#0020ff')
+            .attr('stroke-width', 1.2)
+            .attr('fill', 'transparent')
+    }
+
+    function offset(a, b, k) {
+        return Math.abs(a) > 1.01 ? a/k : a*b;
+    }
+}
+
+},{"./rotate":7}],6:[function(require,module,exports){
+// app/modes.js
+
+var modes = {
+    circle: require('../mode/circle'),
+    rect: require('../mode/rect'),
+    line: require('../mode/line'),
+    pen: require('../mode/pen')
+};
+
+module.exports = function (ctx) {
+    ctx.broker.on(ctx.broker.events.MODE, function (newMode) {
+        ctx.mode = modes[newMode];
+    });
+};
+},{"../mode/circle":11,"../mode/line":12,"../mode/pen":13,"../mode/rect":14}],7:[function(require,module,exports){
+module.exports = function (ctx, center) {
+    
+    return function (knob) {
         return d3.drag()
             .on("start", function (d) {
                 fill(knob, 'rgba(0, 40, 255, 0.5)');
@@ -293,13 +327,13 @@ function extent(ctx) {
                 ctx.active.attr('transform', function () {
                     return getTransform(ctx.active.datum());
                 });
-                render();
+                ctx.extent.updateExtent();
             })
             .on("end", function () {
                 fill(knob, 'transparent');
                 center.attr('display', 'none');
             })
-    }
+    };
 
     function getTransform(d) {
         var r = ctx.active.node().getBBox();
@@ -309,45 +343,13 @@ function extent(ctx) {
             'translate(' + d.x +',' + d.y + ')' ;
     }
 
-    function circle(el) {
-        el.call(style)
-            .attr('display', 'none')
-            .attr('r', 5)
-    }
-
     function fill(el, col) {
         el.transition()
             .duration(100)
             .style('fill', col)
     }
-
-    function style(el) {
-        el.attr('stroke', '#0020ff')
-            .attr('stroke-width', 1.2)
-            .attr('fill', 'transparent')
-    }
-
-    function offset(a, b, k) {
-        return Math.abs(a) > 1.01 ? a/k : a*b;
-    }
-}
-
-},{}],6:[function(require,module,exports){
-// app/modes.js
-
-var modes = {
-    circle: require('../mode/circle'),
-    rect: require('../mode/rect'),
-    line: require('../mode/line'),
-    pen: require('../mode/pen')
 };
-
-module.exports = function (ctx) {
-    ctx.broker.on(ctx.broker.events.MODE, function (newMode) {
-        ctx.mode = modes[newMode];
-    });
-};
-},{"../mode/circle":10,"../mode/line":11,"../mode/pen":12,"../mode/rect":13}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // app/transformer.js
 
 module.exports = transformer;
@@ -389,7 +391,7 @@ function transformer(ctx) {
 }
 
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -417,7 +419,7 @@ module.exports = function (ctx) {
         redoQueue.length && undoQueue.push(redoQueue.pop().redo());
     }
 };
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -461,7 +463,7 @@ window.d3Paint = function (elementOrSelector) {
 
 };
 
-},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/transformer":7,"./app/undoredo":8}],10:[function(require,module,exports){
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/transformer":8,"./app/undoredo":9}],11:[function(require,module,exports){
 // mode/circle.js
 
 var active;
@@ -492,7 +494,7 @@ function dragMove(mouse) {
             return Math.sqrt(x*x + y*y);
         })
 }
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -522,7 +524,7 @@ function dragMove(e) {
         .attr('x2', e.x)
         .attr('y2', e.y)
 }
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -568,7 +570,7 @@ function dragMove(e) {
 
     ctx.active.attr("d", line);
 }
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -604,4 +606,4 @@ function dragMove(e) {
             return Math.abs(e.y - d[0][1]);
         })
 }
-},{}]},{},[9]);
+},{}]},{},[10]);

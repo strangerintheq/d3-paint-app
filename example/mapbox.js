@@ -36,7 +36,7 @@ paint.on('mode', function (mode) {
     })
 });
 
-d3.selectAll('button').each(function () {
+d3.selectAll('#mode button').each(function () {
     let btn = d3.select(this);
     btn.attr('id', btn.html());
     btn.on('click', function () {

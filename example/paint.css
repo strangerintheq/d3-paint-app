@@ -1,6 +1,6 @@
 body {
     overflow: hidden;
-    margin: 20px 10px 10px;
+    margin: 10px 10px 10px;
     background-color: wheat;
 }
 #mapbox,
@@ -14,4 +14,7 @@ body {
 
 .tick line {
     stroke: #4b4b4b;
+}
+#undoredo {
+    margin-left: 50px;
 }
