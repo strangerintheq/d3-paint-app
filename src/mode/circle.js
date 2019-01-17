@@ -1,3 +1,5 @@
+// mode/circle.js
+
 var active;
 
 var mode = {

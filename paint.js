@@ -1,4 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+// app/axes.js
+
 module.exports = axes;
 
 function axes(svg) {
@@ -48,11 +50,9 @@ function axes(svg) {
     }
 }
 },{}],2:[function(require,module,exports){
-let events = {
-    MODE: 'mode',
-    RESIZE: 'resize',
-    TRANSFORM: 'transform'
-};
+// app/broker.js
+
+var events = require('./events');
 
 module.exports = broker;
 
@@ -79,8 +79,8 @@ function broker() {
 }
 
 
-},{}],3:[function(require,module,exports){
-// canvas.js
+},{"./events":4}],3:[function(require,module,exports){
+// app/canvas.js
 
 var width = 800;
 var height = 600;
@@ -98,16 +98,16 @@ function canvas(ctx) {
         .attr('height', height)
         .call(d3.drag()
             .on("start", function () {
-                ctx.mode && dragStart();
+                ctx.mode && drawStart();
             })
             .on("drag", function () {
                 ctx.mode && ctx.mode.dragMove(d3.event);
             })
             .on("end", function () {
-                ctx.mode && dragEnd();
+                ctx.mode && drawEnd();
             }));
 
-    function dragStart() {
+    function drawStart() {
 
         var dragger = d3.drag()
             .subject(function (d) {
@@ -120,7 +120,8 @@ function canvas(ctx) {
             .on("drag", drag);
 
         var group = ctx.canvas.append('g')
-            .datum({x: 0, y: 0, r: 77})
+            .datum({x: 0, y: 0, r: 0})
+            .style('cursor', 'move')
             .call(dragger);
 
         ctx.active = ctx.mode.dragStart(group, d3.event);
@@ -128,9 +129,8 @@ function canvas(ctx) {
         applyBrush(ctx.active);
 
         function drag(d) {
-            //d.x = d3.event.x;
-            //d.y = d3.event.y;
-            d.r = d3.event.y;
+            d.x = d3.event.x;
+            d.y = d3.event.y;
             ctx.active.attr('transform', getTransform(d));
             ctx.extent.updateExtent(ctx);
         }
@@ -146,11 +146,11 @@ function canvas(ctx) {
         var r = ctx.active.node().getBBox();
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + x + ',' + y + ')' +
+        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
             'translate(' + d.x +',' + d.y + ')' ;
     }
 
-    function dragEnd() {
+    function drawEnd() {
         ctx.extent.updateExtent(ctx);
         ctx.broker.fire(ctx.broker.events.MODE, 'null')
     }
@@ -163,19 +163,31 @@ function canvas(ctx) {
 
 
 },{}],4:[function(require,module,exports){
-// extent.js
+// app/events.js
+
+module.exports = {
+    UNDO: 'undo',
+    REDO: 'redo',
+    MODE: 'mode',
+    RESIZE: 'resize',
+    TRANSFORM: 'transform',
+    ACTION: 'action'
+};
+},{}],5:[function(require,module,exports){
+// app/extent.js
 
 module.exports = extent;
 
 var placementKeys = [
     ['nw', 0, 0],
-    ['n', 1, 0],
-    ['ne', 1, 0],
-    ['e', 0, 1],
-    ['se', 0, 1],
-    ['s', -1, 0],
-    ['sw', -1, 0],
-    ['w', 0, -1]
+    ['w', 0, 1],
+    ['sw', 0, 1],
+    ['s', 1, 0],
+    ['se', 1, 0],
+    ['e', 0, -1],
+    ['ne', 0, -1],
+    ['n', -1, 0],
+    ['r', 0, -15]
 ];
 
 function extent(ctx) {
@@ -183,70 +195,146 @@ function extent(ctx) {
     var pt = ctx.svg.node().createSVGPoint();
 
     var extent = ctx.svg.append('g')
-        .classed('extent', true)
-        .append('path')
-        .attr('fill', 'none')
-        .attr('pointer-events', 'none')
-        .attr('stroke', 'red')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', '4 5');
+        .classed('extent', true);
 
-    ctx.svg.selectAll('circle.knob')
+    var path = extent.append('path')
+        .call(style)
+        .attr('pointer-events', 'none');
+
+    var center = extent.append('circle')
+        .call(circle)
+        .attr('pointer-events', 'none');
+
+    extent.selectAll('circle.knob')
         .data(placementKeys)
         .enter()
         .append('circle')
-        .attr('cx', -1e10)
-        .attr('cy', -1e10)
-        .attr('r', 5)
+        .call(circle)
+        .attr('cursor', 'pointer')
         .each(function (d) {
-            d3.select(this)
-                .classed('knob ' + d[0], true);
+
+            var knob = d3.select(this);
+            knob.classed('knob ' + d[0], true);
+
+            if (d[0] !== 'r')
+                return;
+
+            knob.call(dragKnob(knob));
+
         });
 
     return {
-        updateExtent: function () {
-
-            var a = ctx.active;
-            var t = a.attr('stroke-width') ||
-                d3.select(a.node().firstChild).attr('stroke-width');
-            var bbox = a.node().getBBox();
-            var matrix = a.node().getScreenCTM();
-            var pad = 2 + t/2 / ctx.transform.k;
-            var hw = bbox.width / 2 + pad;
-            var hh = bbox.height / 2 + pad;
-
-            pt.x = bbox.x - pad;
-            pt.y = bbox.y - pad;
-
-            var pts = placementKeys.map(function (p) {
-                pt.x += p[1] * hw;
-                pt.y += p[2] * hh;
-                return pt.matrixTransform(matrix);
-            });
-
-            var n = ctx.svg.node().parentNode;
-            var ox = n.clientWidth / 2 + n.offsetLeft;
-            var oy = n.clientHeight / 2 + n.offsetTop;
-            var d = "";
-            pts.forEach(function (p, i) {
-                d3.select('circle.' + placementKeys[i][0])
-                    .attr('cx', p.x - ox)
-                    .attr('cy', p.y - oy);
-
-                if (i%2 === 0) {
-                    d += !d ? "M" : "L";
-                    d += (p.x - ox) + ",";
-                    d += (p.y - oy) + " ";
-                }
-            });
-
-            extent.attr('d', d + "Z");
-
-        }
+        updateExtent: render
     };
+
+    function render() {
+        var a = ctx.active;
+        var t = a.attr('stroke-width') ||
+            d3.select(a.node().firstChild).attr('stroke-width');
+        var bbox = a.node().getBBox();
+        var matrix = a.node().getScreenCTM();
+        var pad = 2 + t/2 / ctx.transform.k;
+        var hw = bbox.width / 2 + pad;
+        var hh = bbox.height / 2 + pad;
+
+        pt.x = bbox.x - pad;
+        pt.y = bbox.y - pad;
+
+        var pts = placementKeys.map(function (p) {
+            pt.x += offset(p[1], hw, ctx.transform.k);
+            pt.y += offset(p[2], hh, ctx.transform.k);
+            return pt.matrixTransform(matrix);
+        });
+
+        var n = ctx.svg.node().parentNode;
+        var ox = n.clientWidth / 2 + n.offsetLeft;
+        var oy = n.clientHeight / 2 + n.offsetTop;
+        var d = "";
+        pts.forEach(function (p, i) {
+            d3.select('circle.' + placementKeys[i][0])
+                .attr('display', 'visible')
+                .attr('cx', p.x - ox)
+                .attr('cy', p.y - oy);
+
+            if (i%2 === 0 && i!== pts.length-1) {
+                d += !d ? "M" : "L";
+                d += (p.x - ox) + ",";
+                d += (p.y - oy) + " ";
+            }
+        });
+
+        path.attr('d', d + "Z");
+    }
+
+    function dragKnob(knob) {
+        return d3.drag()
+            .on("start", function (d) {
+                fill(knob, 'rgba(0, 40, 255, 0.5)');
+                var n = ctx.svg.node().parentNode;
+                var ox = n.clientWidth / 2 + n.offsetLeft;
+                var oy = n.clientHeight / 2 + n.offsetTop;
+                var r = ctx.active.node().getBoundingClientRect();
+                d.cx = r.x + r.width/2 - ox;
+                d.cy = r.y + r.height/2 - oy;
+                center.attr('cx', d.cx)
+                    .attr('cy', d.cy)
+                    .attr('display', 'visible');
+
+            })
+            .on("drag", function (d) {
+                var x = d3.event.x;
+                var y = d3.event.y;
+                var a = Math.atan2(y - d.cy, x - d.cx) * 180 / Math.PI + 90;
+
+                // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
+                //     a = 90 * (a/90).toFixed(0);
+
+                ctx.active.datum().r = a;
+                ctx.active.attr('transform', function () {
+                    return getTransform(ctx.active.datum());
+                });
+                render();
+            })
+            .on("end", function () {
+                fill(knob, 'transparent');
+                center.attr('display', 'none');
+            })
+    }
+
+    function getTransform(d) {
+        var r = ctx.active.node().getBBox();
+        var x = r.x + r.width / 2;
+        var y = r.y + r.height / 2;
+        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
+            'translate(' + d.x +',' + d.y + ')' ;
+    }
+
+    function circle(el) {
+        el.call(style)
+            .attr('display', 'none')
+            .attr('r', 5)
+    }
+
+    function fill(el, col) {
+        el.transition()
+            .duration(100)
+            .style('fill', col)
+    }
+
+    function style(el) {
+        el.attr('stroke', '#0020ff')
+            .attr('stroke-width', 1.2)
+            .attr('fill', 'transparent')
+    }
+
+    function offset(a, b, k) {
+        return Math.abs(a) > 1.01 ? a/k : a*b;
+    }
 }
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+// app/modes.js
+
 var modes = {
     circle: require('../mode/circle'),
     rect: require('../mode/rect'),
@@ -259,7 +347,9 @@ module.exports = function (ctx) {
         ctx.mode = modes[newMode];
     });
 };
-},{"../mode/circle":8,"../mode/line":9,"../mode/pen":10,"../mode/rect":11}],6:[function(require,module,exports){
+},{"../mode/circle":10,"../mode/line":11,"../mode/pen":12,"../mode/rect":13}],7:[function(require,module,exports){
+// app/transformer.js
+
 module.exports = transformer;
 
 function transformer(ctx) {
@@ -299,14 +389,44 @@ function transformer(ctx) {
 }
 
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
+// app/undoredo.js
+
+module.exports = function (ctx) {
+
+    var undoQueue = [];
+    var redoQueue = [];
+
+    ctx.broker.on(ctx.broker.events.UNDO, undo);
+    ctx.broker.on(ctx.broker.events.REDO, redo);
+    ctx.broker.on(ctx.broker.events.ACTION, add);
+
+    function add(action) {
+        if (!action.undo || !action.redo) {
+            throw Error('undo/redo method not found')
+        }
+        undoQueue.push(action);
+        redoQueue = [];
+    }
+
+    function undo() {
+        undoQueue.length && redoQueue.push(undoQueue.pop().undo());
+    }
+
+    function redo() {
+        redoQueue.length && undoQueue.push(redoQueue.pop().redo());
+    }
+};
+},{}],9:[function(require,module,exports){
+// index.js
+
 var createAxes = require('./app/axes');
 var createExtent = require('./app/extent');
 var createCanvas = require('./app/canvas');
 var createTransformer = require('./app/transformer');
 var createEvents = require('./app/broker');
 var createModes = require('./app/modes');
-
+var addUndoRedoSupport = require('./app/undoredo');
 window.d3Paint = function (elementOrSelector) {
 
     var ctx = {};
@@ -325,6 +445,7 @@ window.d3Paint = function (elementOrSelector) {
     createTransformer(ctx);
     createModes(ctx);
     createCanvas(ctx);
+    addUndoRedoSupport(ctx);
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
 
@@ -340,7 +461,9 @@ window.d3Paint = function (elementOrSelector) {
 
 };
 
-},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":4,"./app/modes":5,"./app/transformer":6}],8:[function(require,module,exports){
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/transformer":7,"./app/undoredo":8}],10:[function(require,module,exports){
+// mode/circle.js
+
 var active;
 
 var mode = {
@@ -369,7 +492,9 @@ function dragMove(mouse) {
             return Math.sqrt(x*x + y*y);
         })
 }
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
+// mode/line.js
+
 var active;
 
 var mode = {
@@ -397,7 +522,9 @@ function dragMove(e) {
         .attr('x2', e.x)
         .attr('y2', e.y)
 }
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
+// mode/pen.js
+
 var line = d3.line().curve(d3.curveBasis);
 
 var ctx;
@@ -441,7 +568,9 @@ function dragMove(e) {
 
     ctx.active.attr("d", line);
 }
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
+// mode/rect.js
+
 var active;
 
 var mode = {
@@ -475,4 +604,4 @@ function dragMove(e) {
             return Math.abs(e.y - d[0][1]);
         })
 }
-},{}]},{},[7]);
+},{}]},{},[9]);

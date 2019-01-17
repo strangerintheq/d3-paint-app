@@ -1,3 +1,5 @@
+// mode/pen.js
+
 var line = d3.line().curve(d3.curveBasis);
 
 var ctx;

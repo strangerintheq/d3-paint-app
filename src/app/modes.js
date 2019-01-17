@@ -1,3 +1,5 @@
+// app/modes.js
+
 var modes = {
     circle: require('../mode/circle'),
     rect: require('../mode/rect'),

@@ -1,3 +1,5 @@
+// app/axes.js
+
 module.exports = axes;
 
 function axes(svg) {

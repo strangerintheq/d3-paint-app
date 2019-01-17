@@ -1,8 +1,6 @@
-let events = {
-    MODE: 'mode',
-    RESIZE: 'resize',
-    TRANSFORM: 'transform'
-};
+// app/broker.js
+
+var events = require('./events');
 
 module.exports = broker;
 

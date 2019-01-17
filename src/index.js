@@ -1,10 +1,12 @@
+// index.js
+
 var createAxes = require('./app/axes');
 var createExtent = require('./app/extent');
 var createCanvas = require('./app/canvas');
 var createTransformer = require('./app/transformer');
 var createEvents = require('./app/broker');
 var createModes = require('./app/modes');
-
+var addUndoRedoSupport = require('./app/undoredo');
 window.d3Paint = function (elementOrSelector) {
 
     var ctx = {};
@@ -23,6 +25,7 @@ window.d3Paint = function (elementOrSelector) {
     createTransformer(ctx);
     createModes(ctx);
     createCanvas(ctx);
+    addUndoRedoSupport(ctx);
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
 

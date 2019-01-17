@@ -1,3 +1,5 @@
+// mode/rect.js
+
 var active;
 
 var mode = {

@@ -1,3 +1,5 @@
+// mode/line.js
+
 var active;
 
 var mode = {
