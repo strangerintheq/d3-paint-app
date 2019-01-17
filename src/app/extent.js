@@ -2,13 +2,24 @@
 
 module.exports = extent;
 
-var placementKeys = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'];
+var placementKeys = [
+    ['nw', 0, 0],
+    ['n', 1, 0],
+    ['ne', 1, 0],
+    ['e', 0, 1],
+    ['se', 0, 1],
+    ['s', -1, 0],
+    ['sw', -1, 0],
+    ['w', 0, -1]
+];
 
 function extent(ctx) {
 
+    var pt = ctx.svg.node().createSVGPoint();
+
     var extent = ctx.svg.append('g')
         .classed('extent', true)
-        .append('rect')
+        .append('path')
         .attr('fill', 'none')
         .attr('pointer-events', 'none')
         .attr('stroke', 'red')
@@ -24,96 +35,48 @@ function extent(ctx) {
         .attr('r', 5)
         .each(function (d) {
             d3.select(this)
-                .classed('knob ' + d, true);
+                .classed('knob ' + d[0], true);
         });
 
     return {
         updateExtent: function () {
-            var a = ctx.active;
-            var r = a.node().getBoundingClientRect();
 
+            var a = ctx.active;
             var t = a.attr('stroke-width') ||
                 d3.select(a.node().firstChild).attr('stroke-width');
+            var bbox = a.node().getBBox();
+            var matrix = a.node().getScreenCTM();
+            var pad = 2 + t/2 / ctx.transform.k;
+            var hw = bbox.width / 2 + pad;
+            var hh = bbox.height / 2 + pad;
+
+            pt.x = bbox.x - pad;
+            pt.y = bbox.y - pad;
+
+            var pts = placementKeys.map(function (p) {
+                pt.x += p[1] * hw;
+                pt.y += p[2] * hh;
+                return pt.matrixTransform(matrix);
+            });
+
             var n = ctx.svg.node().parentNode;
-
-            var p = 2 + t/2 * ctx.transform.k;
             var ox = n.clientWidth / 2 + n.offsetLeft;
-            var x = r.x - ox - p;
             var oy = n.clientHeight / 2 + n.offsetTop;
-            var y = r.y - oy - p;
-            var w = r.width + p * 2;
-            var h = r.height + p * 2;
+            var d = "";
+            pts.forEach(function (p, i) {
+                d3.select('circle.' + placementKeys[i][0])
+                    .attr('cx', p.x - ox)
+                    .attr('cy', p.y - oy);
 
-            extent
-                .attr('x', x)
-                .attr('y', y)
-                .attr('width', w)
-                .attr('height', h)
+                if (i%2 === 0) {
+                    d += !d ? "M" : "L";
+                    d += (p.x - ox) + ",";
+                    d += (p.y - oy) + " ";
+                }
+            });
 
+            extent.attr('d', d + "Z");
 
-            drawMarkers(a.node(), ox, oy);
         }
-    }
-
-
-    var RAD2DEG = 180 / Math.PI;
-
-    function makePlacementMarker(name, point, ox, oy) {
-        d3.select('circle.' + name)
-            .attr('cx', point.x - ox)
-            .attr('cy', point.y - oy)
-    }
-
-    function drawMarkers(el, ox, oy) {
-        var pt = ctx.svg.node().createSVGPoint();
-        var bbox = el.getBBox(),
-            matrix = el.getScreenCTM(),
-            halfWidth = bbox.width / 2,
-            halfHeight = bbox.height / 2,
-            placements = [] ;
-
-        function pushPlacement() {
-            placements.push(pt.matrixTransform(matrix));
-        }
-
-        // get bbox corners and midpoints
-        pt.x = bbox.x;
-        pt.y = bbox.y;
-        pushPlacement();
-        pt.x += halfWidth;
-        pushPlacement();
-        pt.x += halfWidth;
-        pushPlacement();
-        pt.y += halfHeight;
-        pushPlacement();
-        pt.y += halfHeight;
-        pushPlacement();
-        pt.x -= halfWidth;
-        pushPlacement();
-        pt.x -= halfWidth;
-        pushPlacement();
-        pt.y -= halfHeight;
-        pushPlacement();
-
-        // determine rotation
-        var rotation, steps;
-        if (placements[0].y !== placements[1].y || placements[0].x !== placements[7].x) {
-            rotation = Math.atan2( matrix.b, matrix.a ) * RAD2DEG;
-            steps = Math.ceil(((rotation % 360) - 22.5) / 45);
-            if (steps < 1) steps += 8;
-            while (steps--) {
-                placementKeys.push(placementKeys.shift());
-            }
-        }
-
-        var placementMap = {};
-        for (var x=0; x<placements.length; x++) {
-            placementMap[placementKeys[x]] = placements[x];
-            makePlacementMarker(placementKeys[x], placements[x], ox, oy);
-        }
-    }
-
-
-
-
+    };
 }
