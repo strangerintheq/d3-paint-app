@@ -28,28 +28,27 @@ function canvas(ctx) {
     function drawStart() {
 
         var dragger = d3.drag()
-            .subject(function (d) {
-                return d;
-            })
             .on("start", function (d) {
                 ctx.active = d3.select(this);
                 drag(d);
             })
             .on("drag", drag);
 
-        var group = ctx.canvas.append('g')
-            .datum({x: 0, y: 0, r: 0})
+        var group = ctx.canvas
+            .append('g')
             .style('cursor', 'move')
+            .datum({x: 0, y: 0, r: 0, id:'x'})
             .call(dragger);
 
-        ctx.active = ctx.mode.dragStart(group, d3.event);
+        ctx.active = ctx.mode
+            .dragStart(group, d3.event);
 
         applyBrush(ctx.active);
 
         function drag(d) {
             d.x = d3.event.x;
             d.y = d3.event.y;
-            ctx.active.attr('transform', getTransform(d));
+            ctx.active.attr('transform', getTransform);
             ctx.extent.updateExtent(ctx);
         }
     }
@@ -70,7 +69,8 @@ function canvas(ctx) {
 
     function drawEnd() {
         ctx.extent.updateExtent(ctx);
-        ctx.broker.fire(ctx.broker.events.MODE, 'null')
+        ctx.broker.fire(ctx.broker.events.MODE, 'null');
+        ctx.active = d3.select(ctx.active.node().parentNode);
     }
 
 }

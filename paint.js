@@ -110,28 +110,27 @@ function canvas(ctx) {
     function drawStart() {
 
         var dragger = d3.drag()
-            .subject(function (d) {
-                return d;
-            })
             .on("start", function (d) {
                 ctx.active = d3.select(this);
                 drag(d);
             })
             .on("drag", drag);
 
-        var group = ctx.canvas.append('g')
-            .datum({x: 0, y: 0, r: 0})
+        var group = ctx.canvas
+            .append('g')
             .style('cursor', 'move')
+            .datum({x: 0, y: 0, r: 0, id:'x'})
             .call(dragger);
 
-        ctx.active = ctx.mode.dragStart(group, d3.event);
+        ctx.active = ctx.mode
+            .dragStart(group, d3.event);
 
         applyBrush(ctx.active);
 
         function drag(d) {
             d.x = d3.event.x;
             d.y = d3.event.y;
-            ctx.active.attr('transform', getTransform(d));
+            ctx.active.attr('transform', getTransform);
             ctx.extent.updateExtent(ctx);
         }
     }
@@ -152,7 +151,8 @@ function canvas(ctx) {
 
     function drawEnd() {
         ctx.extent.updateExtent(ctx);
-        ctx.broker.fire(ctx.broker.events.MODE, 'null')
+        ctx.broker.fire(ctx.broker.events.MODE, 'null');
+        ctx.active = d3.select(ctx.active.node().parentNode);
     }
 
 }
@@ -182,17 +182,13 @@ var rotate = require('./rotate');
 
 function extent(ctx) {
 
-
-
     var pt = ctx.svg.node().createSVGPoint();
 
     var extent = ctx.svg.append('g')
         .classed('extent', true);
-
     var path = extent.append('path')
         .call(style)
         .attr('pointer-events', 'none');
-
     var center = extent.append('circle')
         .call(circle)
         .attr('pointer-events', 'none');
@@ -253,17 +249,14 @@ function extent(ctx) {
                 .attr('display', 'visible')
                 .attr('cx', p.x - ox)
                 .attr('cy', p.y - oy);
-
             if (i%2 === 0 && i!== pts.length-1) {
                 d += !d ? "M" : "L";
                 d += (p.x - ox) + ",";
                 d += (p.y - oy) + " ";
             }
         });
-
         path.attr('d', d + "Z");
     }
-
 
     function circle(el) {
         el.call(style)
@@ -298,8 +291,9 @@ module.exports = function (ctx) {
     });
 };
 },{"../mode/circle":11,"../mode/line":12,"../mode/pen":13,"../mode/rect":14}],7:[function(require,module,exports){
-module.exports = function (ctx, center) {
-    
+module.exports = rotate;
+
+function rotate(ctx, center) {
     return function (knob) {
         return d3.drag()
             .on("start", function (d) {
@@ -323,10 +317,9 @@ module.exports = function (ctx, center) {
                 // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
                 //     a = 90 * (a/90).toFixed(0);
 
-                ctx.active.datum().r = a;
-                ctx.active.attr('transform', function () {
-                    return getTransform(ctx.active.datum());
-                });
+                d = ctx.active.datum();
+                d.r = a;
+                ctx.active.attr('transform', getTransform(d));
                 ctx.extent.updateExtent();
             })
             .on("end", function () {
@@ -339,7 +332,7 @@ module.exports = function (ctx, center) {
         var r = ctx.active.node().getBBox();
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
+        return'rotate(' + d.r +',' + (x+d.x) + ',' + (y+d.y) + ')' +
             'translate(' + d.x +',' + d.y + ')' ;
     }
 
@@ -348,7 +341,7 @@ module.exports = function (ctx, center) {
             .duration(100)
             .style('fill', col)
     }
-};
+}
 },{}],8:[function(require,module,exports){
 // app/transformer.js
 

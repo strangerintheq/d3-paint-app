@@ -24,10 +24,9 @@ function rotate(ctx, center) {
                 // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
                 //     a = 90 * (a/90).toFixed(0);
 
-                ctx.active.datum().r = a;
-                ctx.active.attr('transform', function () {
-                    return getTransform(ctx.active.datum());
-                });
+                d = ctx.active.datum();
+                d.r = a;
+                ctx.active.attr('transform', getTransform(d));
                 ctx.extent.updateExtent();
             })
             .on("end", function () {
@@ -40,7 +39,7 @@ function rotate(ctx, center) {
         var r = ctx.active.node().getBBox();
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
+        return'rotate(' + d.r +',' + (x+d.x) + ',' + (y+d.y) + ')' +
             'translate(' + d.x +',' + d.y + ')' ;
     }
 
