@@ -30,4 +30,3 @@ module.exports = {
         return ctx.svg.append('g').classed(className, true);
     }
 };
-

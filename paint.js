@@ -49,6 +49,7 @@ function axes(svg) {
         }
     }
 }
+
 },{}],2:[function(require,module,exports){
 // app/broker.js
 
@@ -77,7 +78,6 @@ function broker() {
         }
     }
 }
-
 
 },{"./events":4}],3:[function(require,module,exports){
 // app/canvas.js
@@ -149,11 +149,6 @@ function canvas(ctx) {
 
 }
 
-
-
-
-
-
 },{"./svg":9,"./translate":10}],4:[function(require,module,exports){
 // app/events.js
 
@@ -165,6 +160,7 @@ module.exports = {
     TRANSFORM: 'transform',
     ACTION: 'action'
 };
+
 },{}],5:[function(require,module,exports){
 // app/extent.js
 
@@ -285,6 +281,7 @@ module.exports = function (ctx) {
         ctx.mode = modes[newMode];
     });
 };
+
 },{"../mode/circle":13,"../mode/line":14,"../mode/pen":15,"../mode/rect":16}],7:[function(require,module,exports){
 // app/panzoom.js
 
@@ -324,7 +321,6 @@ function panzoom(ctx) {
             });
     }
 }
-
 
 },{}],8:[function(require,module,exports){
 // app/rotate.js
@@ -370,6 +366,7 @@ function rotate(ctx, center) {
             .style('fill', col)
     }
 }
+
 },{"./svg":9}],9:[function(require,module,exports){
 // app/svg.js
 
@@ -404,7 +401,6 @@ module.exports = {
     }
 };
 
-
 },{}],10:[function(require,module,exports){
 var svg = require('./svg');
 
@@ -424,6 +420,7 @@ module.exports = function (ctx) {
         ctx.extent.updateExtent(ctx);
     }
 };
+
 },{"./svg":9}],11:[function(require,module,exports){
 // app/undoredo.js
 
@@ -452,6 +449,7 @@ module.exports = function (ctx) {
         redoQueue.length && undoQueue.push(redoQueue.pop().redo());
     }
 };
+
 },{}],12:[function(require,module,exports){
 // index.js
 
@@ -525,6 +523,7 @@ function dragMove(mouse) {
             return Math.sqrt(x*x + y*y);
         })
 }
+
 },{}],14:[function(require,module,exports){
 // mode/line.js
 
@@ -555,6 +554,7 @@ function dragMove(e) {
         .attr('x2', e.x)
         .attr('y2', e.y)
 }
+
 },{}],15:[function(require,module,exports){
 // mode/pen.js
 
@@ -601,6 +601,7 @@ function dragMove(e) {
 
     ctx.active.attr("d", line);
 }
+
 },{}],16:[function(require,module,exports){
 // mode/rect.js
 
@@ -637,4 +638,5 @@ function dragMove(e) {
             return Math.abs(e.y - d[0][1]);
         })
 }
+
 },{}]},{},[12]);
