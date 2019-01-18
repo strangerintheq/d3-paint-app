@@ -65,6 +65,9 @@ function broker() {
         events: events,
 
         fire: function (evt, arg) {
+
+            console.log('evt: ' + evt + (arg ? '[' + arg + ']' : ''));
+
             listeners[evt] && listeners[evt].forEach(invoke);
 
             function invoke(listener) {
@@ -91,6 +94,8 @@ var height = 600;
 module.exports = canvas;
 
 function canvas(ctx) {
+
+    var action;
 
     var helpers = svg.g('helpers');
     var canvas = svg.g('canvas');
@@ -127,6 +132,8 @@ function canvas(ctx) {
             .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});
 
+        action = createAction(ctx.active);
+
         ctx.active = ctx.mode
             .dragStart(group, d3.event);
 
@@ -141,10 +148,32 @@ function canvas(ctx) {
     }
 
     function drawEnd() {
+
         ctx.extent.updateExtent(ctx);
         ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx));
+
+        action.added = ctx.active;
+
+        ctx.broker.fire(ctx.broker.events.ACTION, action);
+    }
+
+
+    function createAction(prev) {
+        var action = {
+            prev: prev,
+            added: null,
+            undo: function () {
+                action.added.remove();
+                ctx.active = action.prev;
+                ctx.extent.updateExtent();
+            },
+            redo: function () {
+
+            }
+        };
+        return action
     }
 
 }

@@ -44,3 +44,21 @@ d3.selectAll('#mode button').each(function () {
     })
 });
 
+
+buttons('#mode','mode');
+buttons('#actions');
+
+function buttons(selector, event) {
+    d3.selectAll(selector + ' button').each(function () {
+        let btn = d3.select(this);
+        btn.attr('id', btn.html());
+        btn.on('click', function () {
+            if (event)
+                paint.fire(event, btn.attr('id'));
+            else
+                paint.fire(btn.attr('id'));
+        })
+    });
+
+}
+

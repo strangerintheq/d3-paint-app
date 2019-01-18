@@ -12,6 +12,9 @@ function broker() {
         events: events,
 
         fire: function (evt, arg) {
+
+            console.log('evt: ' + evt + (arg ? '[' + arg + ']' : ''));
+
             listeners[evt] && listeners[evt].forEach(invoke);
 
             function invoke(listener) {
