@@ -118,6 +118,29 @@ function canvas(ctx) {
                 ctx.mode && drawEnd();
             }));
 
+    ctx.broker.on(ctx.broker.events.DELETE, function () {
+        var deleted = ctx.active;
+
+        del();
+
+        ctx.broker.fire(ctx.broker.events.ACTION, {
+            undo: function () {
+                canvas.node().appendChild(deleted.node());
+                ctx.active = deleted;
+                ctx.extent.updateExtent();
+            },
+            redo: del
+        });
+
+        function del() {
+            deleted.remove();
+            ctx.active = null;
+            ctx.extent.updateExtent();
+        }
+
+
+    });
+
     return {
         applyTransform: function () {
             helpers.attr("transform", ctx.transform);
@@ -190,7 +213,8 @@ module.exports = {
     MODE: 'mode',
     RESIZE: 'resize',
     TRANSFORM: 'transform',
-    ACTION: 'action'
+    ACTION: 'action',
+    DELETE: 'delete'
 };
 
 },{}],5:[function(require,module,exports){
@@ -490,9 +514,6 @@ module.exports = function (ctx) {
     }
 
     function activate(g) {
-        if (ctx.active === g)
-            return;
-
         action = createTranslateAction(ctx.active.datum());
         ctx.active = g;
     }
@@ -515,8 +536,8 @@ module.exports = function (ctx) {
 
     function assign(d) {
         ctx.active = d.el;
-        d.el.datum().x = d.x;
-        d.el.datum().y = d.y;
+        ctx.active.datum().x = d.x;
+        ctx.active.datum().y = d.y;
         ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
     }

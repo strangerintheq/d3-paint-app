@@ -24,9 +24,6 @@ module.exports = function (ctx) {
     }
 
     function activate(g) {
-        if (ctx.active === g)
-            return;
-
         action = createTranslateAction(ctx.active.datum());
         ctx.active = g;
     }
@@ -49,8 +46,8 @@ module.exports = function (ctx) {
 
     function assign(d) {
         ctx.active = d.el;
-        d.el.datum().x = d.x;
-        d.el.datum().y = d.y;
+        ctx.active.datum().x = d.x;
+        ctx.active.datum().y = d.y;
         ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
     }

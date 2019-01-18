@@ -6,5 +6,6 @@ module.exports = {
     MODE: 'mode',
     RESIZE: 'resize',
     TRANSFORM: 'transform',
-    ACTION: 'action'
+    ACTION: 'action',
+    DELETE: 'delete'
 };

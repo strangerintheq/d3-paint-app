@@ -33,6 +33,29 @@ function canvas(ctx) {
                 ctx.mode && drawEnd();
             }));
 
+    ctx.broker.on(ctx.broker.events.DELETE, function () {
+        var deleted = ctx.active;
+
+        del();
+
+        ctx.broker.fire(ctx.broker.events.ACTION, {
+            undo: function () {
+                canvas.node().appendChild(deleted.node());
+                ctx.active = deleted;
+                ctx.extent.updateExtent();
+            },
+            redo: del
+        });
+
+        function del() {
+            deleted.remove();
+            ctx.active = null;
+            ctx.extent.updateExtent();
+        }
+
+
+    });
+
     return {
         applyTransform: function () {
             helpers.attr("transform", ctx.transform);
