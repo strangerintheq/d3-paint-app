@@ -82,6 +82,8 @@ function broker() {
 },{"./events":4}],3:[function(require,module,exports){
 // app/canvas.js
 
+var createTranslate = require('./translate');
+
 var width = 800;
 var height = 600;
 
@@ -109,30 +111,16 @@ function canvas(ctx) {
 
     function drawStart() {
 
-        var dragger = d3.drag()
-            .on("start", function (d) {
-                ctx.active = d3.select(this);
-                drag(d);
-            })
-            .on("drag", drag);
-
         var group = ctx.canvas
             .append('g')
             .style('cursor', 'move')
-            .datum({x: 0, y: 0, r: 0, id:'x'})
-            .call(dragger);
+            .datum({x: 0, y: 0, r: 0});
 
         ctx.active = ctx.mode
             .dragStart(group, d3.event);
 
         applyBrush(ctx.active);
 
-        function drag(d) {
-            d.x = d3.event.x;
-            d.y = d3.event.y;
-            ctx.active.attr('transform', getTransform);
-            ctx.extent.updateExtent(ctx);
-        }
     }
 
     function applyBrush(active) {
@@ -141,18 +129,11 @@ function canvas(ctx) {
             .attr('fill', 'transparent')
     }
 
-    function getTransform(d) {
-        var r = ctx.active.node().getBBox();
-        var x = r.x + r.width / 2;
-        var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
-            'translate(' + d.x +',' + d.y + ')' ;
-    }
-
     function drawEnd() {
         ctx.extent.updateExtent(ctx);
         ctx.broker.fire(ctx.broker.events.MODE, 'null');
-        ctx.active = d3.select(ctx.active.node().parentNode);
+        ctx.active = d3.select(ctx.active.node().parentNode)
+            .call(createTranslate(ctx));
     }
 
 }
@@ -162,7 +143,7 @@ function canvas(ctx) {
 
 
 
-},{}],4:[function(require,module,exports){
+},{"./translate":10}],4:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
@@ -290,7 +271,7 @@ module.exports = function (ctx) {
         ctx.mode = modes[newMode];
     });
 };
-},{"../mode/circle":11,"../mode/line":12,"../mode/pen":13,"../mode/rect":14}],7:[function(require,module,exports){
+},{"../mode/circle":13,"../mode/line":14,"../mode/pen":15,"../mode/rect":16}],7:[function(require,module,exports){
 module.exports = rotate;
 
 function rotate(ctx, center) {
@@ -343,6 +324,14 @@ function rotate(ctx, center) {
     }
 }
 },{}],8:[function(require,module,exports){
+
+
+module.esports = {
+    transform: function () {
+
+    }
+};
+},{}],9:[function(require,module,exports){
 // app/transformer.js
 
 module.exports = transformer;
@@ -384,7 +373,34 @@ function transformer(ctx) {
 }
 
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
+var svg = require('./svg');
+
+module.exports = function (ctx) {
+
+    return d3.drag()
+        .on("start", function (d) {
+            ctx.active = d3.select(this);
+            drag(d);
+        })
+        .on("drag", drag);
+
+    function drag(d) {
+        d.x = d3.event.x;
+        d.y = d3.event.y;
+        ctx.active.attr('transform', getTransform);
+        ctx.extent.updateExtent(ctx);
+    }
+
+    function getTransform(d) {
+        var r = ctx.active.node().getBBox();
+        var x = r.x + r.width / 2;
+        var y = r.y + r.height / 2;
+        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
+            'translate(' + d.x +',' + d.y + ')' ;
+    }
+};
+},{"./svg":8}],11:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -412,7 +428,7 @@ module.exports = function (ctx) {
         redoQueue.length && undoQueue.push(redoQueue.pop().redo());
     }
 };
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -456,7 +472,7 @@ window.d3Paint = function (elementOrSelector) {
 
 };
 
-},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/transformer":8,"./app/undoredo":9}],11:[function(require,module,exports){
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/transformer":9,"./app/undoredo":11}],13:[function(require,module,exports){
 // mode/circle.js
 
 var active;
@@ -487,7 +503,7 @@ function dragMove(mouse) {
             return Math.sqrt(x*x + y*y);
         })
 }
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -517,7 +533,7 @@ function dragMove(e) {
         .attr('x2', e.x)
         .attr('y2', e.y)
 }
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -563,7 +579,7 @@ function dragMove(e) {
 
     ctx.active.attr("d", line);
 }
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -599,4 +615,4 @@ function dragMove(e) {
             return Math.abs(e.y - d[0][1]);
         })
 }
-},{}]},{},[10]);
+},{}]},{},[12]);
