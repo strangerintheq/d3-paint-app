@@ -3,7 +3,6 @@
 module.exports = extent;
 
 var svg = require('./svg');
-
 var rotate = require('./rotate');
 
 function extent(ctx) {
@@ -33,10 +32,11 @@ function extent(ctx) {
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
-    extent.selectAll('circle.knob')
+    var knobs = extent.selectAll('circle.knob')
         .data(placementKeys)
         .enter()
         .append('circle')
+        .classed('knob', true)
         .call(circle)
         .attr('cursor', 'pointer')
         .each(function (d) {
@@ -51,6 +51,10 @@ function extent(ctx) {
 
     function render() {
         var a = ctx.active;
+        if (!a) {
+            path.attr('d', '')
+            return knobs.attr('display', 'none');
+        }
         var t = a.attr('stroke-width') ||
             d3.select(a.node().firstChild).attr('stroke-width');
         var bbox = a.node().getBBox();

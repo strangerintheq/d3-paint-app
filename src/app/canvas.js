@@ -47,7 +47,7 @@ function canvas(ctx) {
             .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});
 
-        action = createAction(ctx.active);
+        action = createDrawAction(ctx.active);
 
         ctx.active = ctx.mode
             .dragStart(group, d3.event);
@@ -65,30 +65,33 @@ function canvas(ctx) {
     function drawEnd() {
 
         ctx.extent.updateExtent(ctx);
-        ctx.broker.fire(ctx.broker.events.MODE, 'null');
+        !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx));
 
-        action.added = ctx.active;
+        action.endDraw();
 
         ctx.broker.fire(ctx.broker.events.ACTION, action);
     }
 
 
-    function createAction(prev) {
-        var action = {
-            prev: prev,
-            added: null,
+    function createDrawAction(prev) {
+        var shape;
+        return {
+            endDraw: function() {
+                shape = ctx.active;
+            },
             undo: function () {
-                action.added.remove();
-                ctx.active = action.prev;
+                shape.remove();
+                ctx.active = prev;
                 ctx.extent.updateExtent();
             },
             redo: function () {
-
+                canvas.node().append(shape.node());
+                ctx.active = shape;
+                ctx.extent.updateExtent();
             }
-        };
-        return action
+        }
     }
 
 }

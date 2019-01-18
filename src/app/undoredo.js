@@ -18,10 +18,18 @@ module.exports = function (ctx) {
     }
 
     function undo() {
-        undoQueue.length && redoQueue.push(undoQueue.pop().undo());
+        if (!undoQueue.length)
+            return;
+        var action = undoQueue.pop();
+        action.undo();
+        redoQueue.push(action);
     }
 
     function redo() {
-        redoQueue.length && undoQueue.push(redoQueue.pop().redo());
+        if (!redoQueue.length)
+            return;
+        var action = redoQueue.pop();
+        action.redo();
+        undoQueue.push(action);
     }
 };

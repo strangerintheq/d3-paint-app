@@ -13,7 +13,7 @@ function broker() {
 
         fire: function (evt, arg) {
 
-            console.log('evt: ' + evt + (arg ? '[' + arg + ']' : ''));
+            console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
 
             listeners[evt] && listeners[evt].forEach(invoke);
 

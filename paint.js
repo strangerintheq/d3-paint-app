@@ -66,7 +66,7 @@ function broker() {
 
         fire: function (evt, arg) {
 
-            console.log('evt: ' + evt + (arg ? '[' + arg + ']' : ''));
+            console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
 
             listeners[evt] && listeners[evt].forEach(invoke);
 
@@ -132,7 +132,7 @@ function canvas(ctx) {
             .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});
 
-        action = createAction(ctx.active);
+        action = createDrawAction(ctx.active);
 
         ctx.active = ctx.mode
             .dragStart(group, d3.event);
@@ -150,30 +150,33 @@ function canvas(ctx) {
     function drawEnd() {
 
         ctx.extent.updateExtent(ctx);
-        ctx.broker.fire(ctx.broker.events.MODE, 'null');
+        !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx));
 
-        action.added = ctx.active;
+        action.endDraw();
 
         ctx.broker.fire(ctx.broker.events.ACTION, action);
     }
 
 
-    function createAction(prev) {
-        var action = {
-            prev: prev,
-            added: null,
+    function createDrawAction(prev) {
+        var shape;
+        return {
+            endDraw: function() {
+                shape = ctx.active;
+            },
             undo: function () {
-                action.added.remove();
-                ctx.active = action.prev;
+                shape.remove();
+                ctx.active = prev;
                 ctx.extent.updateExtent();
             },
             redo: function () {
-
+                canvas.node().append(shape.node());
+                ctx.active = shape;
+                ctx.extent.updateExtent();
             }
-        };
-        return action
+        }
     }
 
 }
@@ -196,7 +199,6 @@ module.exports = {
 module.exports = extent;
 
 var svg = require('./svg');
-
 var rotate = require('./rotate');
 
 function extent(ctx) {
@@ -226,10 +228,11 @@ function extent(ctx) {
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
-    extent.selectAll('circle.knob')
+    var knobs = extent.selectAll('circle.knob')
         .data(placementKeys)
         .enter()
         .append('circle')
+        .classed('knob', true)
         .call(circle)
         .attr('cursor', 'pointer')
         .each(function (d) {
@@ -244,6 +247,10 @@ function extent(ctx) {
 
     function render() {
         var a = ctx.active;
+        if (!a) {
+            path.attr('d', '')
+            return knobs.attr('display', 'none');
+        }
         var t = a.attr('stroke-width') ||
             d3.select(a.node().firstChild).attr('stroke-width');
         var bbox = a.node().getBBox();
@@ -360,6 +367,7 @@ module.exports = rotate;
 
 function rotate(ctx, center) {
     return function (knob) {
+        var action;
         return d3.drag()
             .on("start", function (d) {
                 fill(knob, 'rgba(0, 40, 255, 0.5)');
@@ -369,6 +377,7 @@ function rotate(ctx, center) {
                 center.attr('cx', d.cx)
                     .attr('cy', d.cy)
                     .attr('display', 'visible');
+                action = createRotateAction(ctx.active);
             })
             .on("drag", function (d) {
                 var x = d3.event.x;
@@ -378,14 +387,13 @@ function rotate(ctx, center) {
                 // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
                 //     a = 90 * (a/90).toFixed(0);
 
-                d = ctx.active.datum();
-                d.r = a;
-                ctx.active.attr('transform', svg.getTransform);
-                ctx.extent.updateExtent();
+                doRotate(ctx.active, a);
             })
-            .on("end", function () {
+            .on("end", function (d) {
                 fill(knob, 'transparent');
                 center.attr('display', 'none');
+                action.endRotate();
+                ctx.broker.fire(ctx.broker.events.ACTION, action);
             })
     };
 
@@ -393,6 +401,30 @@ function rotate(ctx, center) {
         el.transition()
             .duration(100)
             .style('fill', col)
+    }
+
+    function doRotate(shape, r) {
+        shape.datum().r = r;
+        shape.attr('transform', svg.getTransform);
+        ctx.extent.updateExtent();
+    }
+
+    function createRotateAction(shape) {
+        var initialRotation = shape.datum().r;
+        var endRotation;
+        return {
+            endRotate: function() {
+                endRotation = shape.datum().r;
+            },
+
+            undo: function () {
+                doRotate(shape, initialRotation);
+            },
+
+            redo: function () {
+                doRotate(shape, endRotation);
+            }
+        }
     }
 }
 
@@ -437,7 +469,7 @@ module.exports = function (ctx) {
 
     return d3.drag()
         .on("start", function (d) {
-            ctx.active = d3.select(this);
+            activate(d3.select(this));
             drag(d);
         })
         .on("drag", drag);
@@ -446,7 +478,27 @@ module.exports = function (ctx) {
         d.x = d3.event.x;
         d.y = d3.event.y;
         ctx.active.attr('transform', svg.getTransform);
-        ctx.extent.updateExtent(ctx);
+        ctx.extent.updateExtent();
+    }
+
+    function activate(g) {
+
+        if (ctx.active === g)
+            return;
+
+        var prev = ctx.active;
+        ctx.active = g;
+
+        ctx.broker.fire(ctx.broker.events.ACTION, {
+            undo: function () {
+                ctx.active = prev;
+                ctx.extent.updateExtent();
+            },
+            redo: function () {
+                ctx.active = g;
+                ctx.extent.updateExtent();
+            }
+        });
     }
 };
 
@@ -471,11 +523,19 @@ module.exports = function (ctx) {
     }
 
     function undo() {
-        undoQueue.length && redoQueue.push(undoQueue.pop().undo());
+        if (!undoQueue.length)
+            return;
+        var action = undoQueue.pop();
+        action.undo();
+        redoQueue.push(action);
     }
 
     function redo() {
-        redoQueue.length && undoQueue.push(redoQueue.pop().redo());
+        if (!redoQueue.length)
+            return;
+        var action = redoQueue.pop();
+        action.redo();
+        undoQueue.push(action);
     }
 };
 
