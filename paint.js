@@ -214,7 +214,9 @@ module.exports = {
     RESIZE: 'resize',
     TRANSFORM: 'transform',
     ACTION: 'action',
-    DELETE: 'delete'
+    DELETE: 'delete',
+    CAN_REDO: 'can-redo',
+    CAN_UNDO: 'can-undo'
 };
 
 },{}],5:[function(require,module,exports){
@@ -229,8 +231,7 @@ function extent(ctx) {
 
     var pt = ctx.svg.node().createSVGPoint();
 
-    var extent = ctx.svg.append('g')
-        .classed('extent', true);
+    var extent = svg.g('extent');
 
     var path = extent.append('path')
         .call(style)
@@ -272,8 +273,9 @@ function extent(ctx) {
     function render() {
         var a = ctx.active;
         if (!a) {
-            path.attr('d', '')
-            return knobs.attr('display', 'none');
+            path.attr('d', '');
+            knobs.attr('display', 'none');
+            return;
         }
         var t = a.attr('stroke-width') ||
             d3.select(a.node().firstChild).attr('stroke-width');
@@ -561,6 +563,12 @@ module.exports = function (ctx) {
         }
         undoQueue.push(action);
         redoQueue = [];
+        fireEvents();
+    }
+
+    function fireEvents() {
+        ctx.broker.fire(ctx.broker.events.CAN_REDO, redoQueue.length);
+        ctx.broker.fire(ctx.broker.events.CAN_UNDO, undoQueue.length);
     }
 
     function undo() {
@@ -569,6 +577,7 @@ module.exports = function (ctx) {
         var action = undoQueue.pop();
         action.undo();
         redoQueue.push(action);
+        fireEvents();
     }
 
     function redo() {
@@ -577,6 +586,7 @@ module.exports = function (ctx) {
         var action = redoQueue.pop();
         action.redo();
         undoQueue.push(action);
+        fireEvents();
     }
 };
 

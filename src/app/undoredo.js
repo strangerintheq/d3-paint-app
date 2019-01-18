@@ -15,6 +15,12 @@ module.exports = function (ctx) {
         }
         undoQueue.push(action);
         redoQueue = [];
+        fireEvents();
+    }
+
+    function fireEvents() {
+        ctx.broker.fire(ctx.broker.events.CAN_REDO, redoQueue.length);
+        ctx.broker.fire(ctx.broker.events.CAN_UNDO, undoQueue.length);
     }
 
     function undo() {
@@ -23,6 +29,7 @@ module.exports = function (ctx) {
         var action = undoQueue.pop();
         action.undo();
         redoQueue.push(action);
+        fireEvents();
     }
 
     function redo() {
@@ -31,5 +38,6 @@ module.exports = function (ctx) {
         var action = redoQueue.pop();
         action.redo();
         undoQueue.push(action);
+        fireEvents();
     }
 };

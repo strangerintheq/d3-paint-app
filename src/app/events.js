@@ -7,5 +7,7 @@ module.exports = {
     RESIZE: 'resize',
     TRANSFORM: 'transform',
     ACTION: 'action',
-    DELETE: 'delete'
+    DELETE: 'delete',
+    CAN_REDO: 'can-redo',
+    CAN_UNDO: 'can-undo'
 };

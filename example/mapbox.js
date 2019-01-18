@@ -30,11 +30,25 @@ paint.on('transform', function (transform) {
 });
 
 paint.on('mode', function (mode) {
-    d3.selectAll('button').style('color', function () {
-        d3.select('#currentMode').text('currentMode: ' + mode)
+    var btn = d3.selectAll('#mode button');
+    btn.style('color', function () {
+        d3.select('#currentMode').text('currentMode: ' + mode);
         return d3.select(this).attr('id') === mode ? 'red' : 'black';
     })
 });
+
+paint.on('can-undo', function (can) {
+    setEnabled('button#undo', can)
+});
+
+paint.on('can-redo', function (can) {
+    setEnabled('button#redo', can);
+});
+
+function setEnabled(selector, can) {
+    var node = d3.select(selector).node();
+    can ? node.removeAttribute('disabled'): node.setAttribute('disabled', '')
+}
 
 d3.selectAll('#mode button').each(function () {
     let btn = d3.select(this);

@@ -9,8 +9,7 @@ function extent(ctx) {
 
     var pt = ctx.svg.node().createSVGPoint();
 
-    var extent = ctx.svg.append('g')
-        .classed('extent', true);
+    var extent = svg.g('extent');
 
     var path = extent.append('path')
         .call(style)
@@ -52,8 +51,9 @@ function extent(ctx) {
     function render() {
         var a = ctx.active;
         if (!a) {
-            path.attr('d', '')
-            return knobs.attr('display', 'none');
+            path.attr('d', '');
+            knobs.attr('display', 'none');
+            return;
         }
         var t = a.attr('stroke-width') ||
             d3.select(a.node().firstChild).attr('stroke-width');
