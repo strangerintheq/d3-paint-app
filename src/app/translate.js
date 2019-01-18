@@ -12,15 +12,7 @@ module.exports = function (ctx) {
     function drag(d) {
         d.x = d3.event.x;
         d.y = d3.event.y;
-        ctx.active.attr('transform', getTransform);
+        ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent(ctx);
-    }
-
-    function getTransform(d) {
-        var r = ctx.active.node().getBBox();
-        var x = r.x + r.width / 2;
-        var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
-            'translate(' + d.x +',' + d.y + ')' ;
     }
 };

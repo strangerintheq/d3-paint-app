@@ -1,6 +1,7 @@
 // app/canvas.js
 
 var createTranslate = require('./translate');
+var svg = require('./svg');
 
 var width = 800;
 var height = 600;
@@ -9,7 +10,10 @@ module.exports = canvas;
 
 function canvas(ctx) {
 
-    ctx.helpers.append('rect')
+    var helpers = svg.g('helpers');
+    var canvas = svg.g('canvas');
+
+    helpers.append('rect')
         .classed('canvas', true)
         .attr('fill', 'rgba(0,0,0,0.2)')
         .attr('x', -width/2)
@@ -27,9 +31,16 @@ function canvas(ctx) {
                 ctx.mode && drawEnd();
             }));
 
+    return {
+        applyTransform: function () {
+            helpers.attr("transform", ctx.transform);
+            canvas.attr("transform", ctx.transform);
+        }
+    };
+
     function drawStart() {
 
-        var group = ctx.canvas
+        var group = canvas
             .append('g')
             .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});

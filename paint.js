@@ -83,6 +83,7 @@ function broker() {
 // app/canvas.js
 
 var createTranslate = require('./translate');
+var svg = require('./svg');
 
 var width = 800;
 var height = 600;
@@ -91,7 +92,10 @@ module.exports = canvas;
 
 function canvas(ctx) {
 
-    ctx.helpers.append('rect')
+    var helpers = svg.g('helpers');
+    var canvas = svg.g('canvas');
+
+    helpers.append('rect')
         .classed('canvas', true)
         .attr('fill', 'rgba(0,0,0,0.2)')
         .attr('x', -width/2)
@@ -109,9 +113,16 @@ function canvas(ctx) {
                 ctx.mode && drawEnd();
             }));
 
+    return {
+        applyTransform: function () {
+            helpers.attr("transform", ctx.transform);
+            canvas.attr("transform", ctx.transform);
+        }
+    };
+
     function drawStart() {
 
-        var group = ctx.canvas
+        var group = canvas
             .append('g')
             .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});
@@ -143,7 +154,7 @@ function canvas(ctx) {
 
 
 
-},{"./translate":10}],4:[function(require,module,exports){
+},{"./svg":9,"./translate":10}],4:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
@@ -159,6 +170,8 @@ module.exports = {
 
 module.exports = extent;
 
+var svg = require('./svg');
+
 var rotate = require('./rotate');
 
 function extent(ctx) {
@@ -167,9 +180,11 @@ function extent(ctx) {
 
     var extent = ctx.svg.append('g')
         .classed('extent', true);
+
     var path = extent.append('path')
         .call(style)
         .attr('pointer-events', 'none');
+
     var center = extent.append('circle')
         .call(circle)
         .attr('pointer-events', 'none');
@@ -221,9 +236,8 @@ function extent(ctx) {
             return pt.matrixTransform(matrix);
         });
 
-        var n = ctx.svg.node().parentNode;
-        var ox = n.clientWidth / 2 + n.offsetLeft;
-        var oy = n.clientHeight / 2 + n.offsetTop;
+        var ox = svg.screenOffsetX(ctx);
+        var oy = svg.screenOffsetY(ctx);
         var d = "";
         pts.forEach(function (p, i) {
             d3.select('circle.' + placementKeys[i][0])
@@ -256,7 +270,7 @@ function extent(ctx) {
     }
 }
 
-},{"./rotate":7}],6:[function(require,module,exports){
+},{"./rotate":8,"./svg":9}],6:[function(require,module,exports){
 // app/modes.js
 
 var modes = {
@@ -272,79 +286,18 @@ module.exports = function (ctx) {
     });
 };
 },{"../mode/circle":13,"../mode/line":14,"../mode/pen":15,"../mode/rect":16}],7:[function(require,module,exports){
-module.exports = rotate;
+// app/panzoom.js
 
-function rotate(ctx, center) {
-    return function (knob) {
-        return d3.drag()
-            .on("start", function (d) {
-                fill(knob, 'rgba(0, 40, 255, 0.5)');
-                var n = ctx.svg.node().parentNode;
-                var ox = n.clientWidth / 2 + n.offsetLeft;
-                var oy = n.clientHeight / 2 + n.offsetTop;
-                var r = ctx.active.node().getBoundingClientRect();
-                d.cx = r.x + r.width/2 - ox;
-                d.cy = r.y + r.height/2 - oy;
-                center.attr('cx', d.cx)
-                    .attr('cy', d.cy)
-                    .attr('display', 'visible');
+module.exports = panzoom;
 
-            })
-            .on("drag", function (d) {
-                var x = d3.event.x;
-                var y = d3.event.y;
-                var a = Math.atan2(y - d.cy, x - d.cx) * 180 / Math.PI + 90;
-
-                // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
-                //     a = 90 * (a/90).toFixed(0);
-
-                d = ctx.active.datum();
-                d.r = a;
-                ctx.active.attr('transform', getTransform(d));
-                ctx.extent.updateExtent();
-            })
-            .on("end", function () {
-                fill(knob, 'transparent');
-                center.attr('display', 'none');
-            })
-    };
-
-    function getTransform(d) {
-        var r = ctx.active.node().getBBox();
-        var x = r.x + r.width / 2;
-        var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x) + ',' + (y+d.y) + ')' +
-            'translate(' + d.x +',' + d.y + ')' ;
-    }
-
-    function fill(el, col) {
-        el.transition()
-            .duration(100)
-            .style('fill', col)
-    }
-}
-},{}],8:[function(require,module,exports){
-
-
-module.esports = {
-    transform: function () {
-
-    }
-};
-},{}],9:[function(require,module,exports){
-// app/transformer.js
-
-module.exports = transformer;
-
-function transformer(ctx) {
+function panzoom(ctx) {
 
     ctx.svg.call(createZoom());
 
     ctx.broker.on(ctx.broker.events.RESIZE, adjustSize);
 
     function applyTransform() {
-        ctx.helpers.attr("transform", ctx.transform);
-        ctx.canvas.attr("transform", ctx.transform);
+        ctx.canvas.applyTransform()
         ctx.axes.applyZoom(ctx.transform);
         ctx.active && ctx.extent.updateExtent(ctx);
         ctx.broker.fire(ctx.broker.events.TRANSFORM, ctx.transform)
@@ -373,6 +326,85 @@ function transformer(ctx) {
 }
 
 
+},{}],8:[function(require,module,exports){
+// app/rotate.js
+
+var svg = require('./svg');
+
+module.exports = rotate;
+
+function rotate(ctx, center) {
+    return function (knob) {
+        return d3.drag()
+            .on("start", function (d) {
+                fill(knob, 'rgba(0, 40, 255, 0.5)');
+                var r = ctx.active.node().getBoundingClientRect();
+                d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
+                d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
+                center.attr('cx', d.cx)
+                    .attr('cy', d.cy)
+                    .attr('display', 'visible');
+            })
+            .on("drag", function (d) {
+                var x = d3.event.x;
+                var y = d3.event.y;
+                var a = Math.atan2(y - d.cy, x - d.cx) * 180 / Math.PI + 90;
+
+                // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
+                //     a = 90 * (a/90).toFixed(0);
+
+                d = ctx.active.datum();
+                d.r = a;
+                ctx.active.attr('transform', svg.getTransform);
+                ctx.extent.updateExtent();
+            })
+            .on("end", function () {
+                fill(knob, 'transparent');
+                center.attr('display', 'none');
+            })
+    };
+
+    function fill(el, col) {
+        el.transition()
+            .duration(100)
+            .style('fill', col)
+    }
+}
+},{"./svg":9}],9:[function(require,module,exports){
+// app/svg.js
+
+var ctx;
+
+module.exports = {
+
+    setContext: function(c) {
+        ctx = c
+    },
+
+    getTransform: function (d) {
+        var r = ctx.active.node().getBBox();
+        var x = r.x + r.width / 2;
+        var y = r.y + r.height / 2;
+        return 'rotate(' + d.r + ',' + (x + d.x) + ',' + (y + d.y) + ')' +
+            'translate(' + d.x + ',' + d.y + ')';
+    },
+
+    screenOffsetX: function () {
+        var n = ctx.containerElement.node();
+        return n.clientWidth / 2 + n.offsetLeft;
+    },
+
+    screenOffsetY: function () {
+        var n = ctx.containerElement.node();
+        return n.clientHeight / 2 + n.offsetTop;
+    },
+
+    g: function (className) {
+        return ctx.svg.append('g').classed(className, true);
+    }
+};
+
+
 },{}],10:[function(require,module,exports){
 var svg = require('./svg');
 
@@ -388,19 +420,11 @@ module.exports = function (ctx) {
     function drag(d) {
         d.x = d3.event.x;
         d.y = d3.event.y;
-        ctx.active.attr('transform', getTransform);
+        ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent(ctx);
     }
-
-    function getTransform(d) {
-        var r = ctx.active.node().getBBox();
-        var x = r.x + r.width / 2;
-        var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x)  + ',' + (y+d.y) + ')' +
-            'translate(' + d.x +',' + d.y + ')' ;
-    }
 };
-},{"./svg":8}],11:[function(require,module,exports){
+},{"./svg":9}],11:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -434,28 +458,31 @@ module.exports = function (ctx) {
 var createAxes = require('./app/axes');
 var createExtent = require('./app/extent');
 var createCanvas = require('./app/canvas');
-var createTransformer = require('./app/transformer');
-var createEvents = require('./app/broker');
+var createPanZoom = require('./app/panzoom');
+var createBroker = require('./app/broker');
 var createModes = require('./app/modes');
 var addUndoRedoSupport = require('./app/undoredo');
+var svg = require('./app/svg');
+
 window.d3Paint = function (elementOrSelector) {
 
     var ctx = {};
     ctx.mode = null; // current mode
     ctx.active = null; // selected shape
-    ctx.broker = createEvents();
+
     ctx.containerElement = d3.select(elementOrSelector);
-    ctx.svg = ctx.containerElement.append('svg')
-        .attr('preserveAspectRatio', 'xMidYMid meet');
-    ctx.helpers = g('helpers');
-    ctx.canvas = g('canvas');
-    ctx.axes = createAxes(ctx.svg);
-    ctx.extent = createExtent(ctx);
+    ctx.svg = ctx.containerElement.append('svg');
     ctx.transform = d3.zoomTransform(ctx.svg);
 
-    createTransformer(ctx);
+    svg.setContext(ctx);
+
+    ctx.broker = createBroker();
+    ctx.axes = createAxes(ctx.svg);
+    ctx.canvas = createCanvas(ctx);
+    ctx.extent = createExtent(ctx);
+
     createModes(ctx);
-    createCanvas(ctx);
+    createPanZoom(ctx);
     addUndoRedoSupport(ctx);
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
@@ -465,14 +492,9 @@ window.d3Paint = function (elementOrSelector) {
     };
 
     return ctx.broker;
-
-    function g(className) {
-        return ctx.svg.append('g').classed(className, true);
-    }
-
 };
 
-},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/transformer":9,"./app/undoredo":11}],13:[function(require,module,exports){
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/panzoom":7,"./app/svg":9,"./app/undoredo":11}],13:[function(require,module,exports){
 // mode/circle.js
 
 var active;

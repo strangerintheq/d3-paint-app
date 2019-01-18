@@ -2,6 +2,8 @@
 
 module.exports = extent;
 
+var svg = require('./svg');
+
 var rotate = require('./rotate');
 
 function extent(ctx) {
@@ -10,9 +12,11 @@ function extent(ctx) {
 
     var extent = ctx.svg.append('g')
         .classed('extent', true);
+
     var path = extent.append('path')
         .call(style)
         .attr('pointer-events', 'none');
+
     var center = extent.append('circle')
         .call(circle)
         .attr('pointer-events', 'none');
@@ -64,9 +68,8 @@ function extent(ctx) {
             return pt.matrixTransform(matrix);
         });
 
-        var n = ctx.svg.node().parentNode;
-        var ox = n.clientWidth / 2 + n.offsetLeft;
-        var oy = n.clientHeight / 2 + n.offsetTop;
+        var ox = svg.screenOffsetX(ctx);
+        var oy = svg.screenOffsetY(ctx);
         var d = "";
         pts.forEach(function (p, i) {
             d3.select('circle.' + placementKeys[i][0])

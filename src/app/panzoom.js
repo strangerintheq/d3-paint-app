@@ -1,16 +1,15 @@
-// app/transformer.js
+// app/panzoom.js
 
-module.exports = transformer;
+module.exports = panzoom;
 
-function transformer(ctx) {
+function panzoom(ctx) {
 
     ctx.svg.call(createZoom());
 
     ctx.broker.on(ctx.broker.events.RESIZE, adjustSize);
 
     function applyTransform() {
-        ctx.helpers.attr("transform", ctx.transform);
-        ctx.canvas.attr("transform", ctx.transform);
+        ctx.canvas.applyTransform()
         ctx.axes.applyZoom(ctx.transform);
         ctx.active && ctx.extent.updateExtent(ctx);
         ctx.broker.fire(ctx.broker.events.TRANSFORM, ctx.transform)

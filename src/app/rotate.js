@@ -1,3 +1,7 @@
+// app/rotate.js
+
+var svg = require('./svg');
+
 module.exports = rotate;
 
 function rotate(ctx, center) {
@@ -5,16 +9,12 @@ function rotate(ctx, center) {
         return d3.drag()
             .on("start", function (d) {
                 fill(knob, 'rgba(0, 40, 255, 0.5)');
-                var n = ctx.svg.node().parentNode;
-                var ox = n.clientWidth / 2 + n.offsetLeft;
-                var oy = n.clientHeight / 2 + n.offsetTop;
                 var r = ctx.active.node().getBoundingClientRect();
-                d.cx = r.x + r.width/2 - ox;
-                d.cy = r.y + r.height/2 - oy;
+                d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
+                d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
                 center.attr('cx', d.cx)
                     .attr('cy', d.cy)
                     .attr('display', 'visible');
-
             })
             .on("drag", function (d) {
                 var x = d3.event.x;
@@ -26,7 +26,7 @@ function rotate(ctx, center) {
 
                 d = ctx.active.datum();
                 d.r = a;
-                ctx.active.attr('transform', getTransform(d));
+                ctx.active.attr('transform', svg.getTransform);
                 ctx.extent.updateExtent();
             })
             .on("end", function () {
@@ -34,14 +34,6 @@ function rotate(ctx, center) {
                 center.attr('display', 'none');
             })
     };
-
-    function getTransform(d) {
-        var r = ctx.active.node().getBBox();
-        var x = r.x + r.width / 2;
-        var y = r.y + r.height / 2;
-        return'rotate(' + d.r +',' + (x+d.x) + ',' + (y+d.y) + ')' +
-            'translate(' + d.x +',' + d.y + ')' ;
-    }
 
     function fill(el, col) {
         el.transition()
