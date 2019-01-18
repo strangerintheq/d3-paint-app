@@ -33,6 +33,7 @@ function rotate(ctx, center) {
                 center.attr('display', 'none');
                 action.endRotate();
                 ctx.broker.fire(ctx.broker.events.ACTION, action);
+                action = null;
             })
     };
 
