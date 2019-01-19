@@ -5,6 +5,7 @@ module.exports = extent;
 var svg = require('./svg');
 var rotate = require('./rotate');
 var scale = require('./scale');
+var scale2 = require('./scale2');
 
 function extent(ctx) {
 
@@ -19,13 +20,13 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0, scale(ctx, 'ne', 'sw')],
+        ['nw', 0, 0, scale2(ctx, 'se', 'sw', 'se', 'ne')],
         ['w', 0, 1, scale(ctx, 'e', null)],
-        ['sw', 0, 1, scale(ctx, 'se', 'nw')],
+        ['sw', 0, 1, scale2(ctx, 'ne', 'nw', 'ne', 'se')],
         ['s', 1, 0, scale(ctx, null, 'n')],
-        ['se', 1, 0, scale(ctx, 'sw', 'ne')],
+        ['se', 1, 0, scale2(ctx, 'nw', 'sw','nw','ne')],
         ['e', 0, -1, scale(ctx, 'w', null)],
-        ['ne', 0, -1, scale(ctx, 'nw', 'se')],
+        ['ne', 0, -1, scale2(ctx, 'sw', 'nw','sw', 'se')],
         ['n', -1, 0, scale(ctx, null, 's')],
         ['r', 0, -15, rotate(ctx, center)]
     ];

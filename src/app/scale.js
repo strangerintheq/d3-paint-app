@@ -14,11 +14,9 @@ module.exports = function (ctx, oppositeX, oppositeY) {
             .on("drag", function (d) {
                 if (d.lineX && !d.lineY)
                     calcLine(d, d.lineX);
+
                 if (!d.lineX && d.lineY)
                     calcLine(d, d.lineY);
-
-                if (d.lineX && d.lineY) {
-                }
 
                 upd(d.lineX);
                 upd(d.lineY);
