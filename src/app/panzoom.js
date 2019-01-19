@@ -25,6 +25,7 @@ function panzoom(ctx) {
     }
 
     function createZoom() {
+
         return d3.zoom()
             .filter(function () {
                 return true;
@@ -33,6 +34,7 @@ function panzoom(ctx) {
             .on("zoom", function() {
                 ctx.transform = d3.event.transform;
                 applyTransform();
-            });
+            })
+
     }
 }

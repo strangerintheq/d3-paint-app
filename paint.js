@@ -221,8 +221,6 @@ var scale = require('./scale');
 
 function extent(ctx) {
 
-    var pt = ctx.svg.node().createSVGPoint();
-
     var extent = svg.g('extent');
 
     var path = extent.append('path')
@@ -234,14 +232,14 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0, scale(ctx, 'se')],
-        ['w', 0, 1, scale(ctx, 'e')],
-        ['sw', 0, 1, scale(ctx, 'ne')],
-        ['s', 1, 0, scale(ctx, 'n')],
-        ['se', 1, 0, scale(ctx, 'nw')],
-        ['e', 0, -1, scale(ctx, 'w')],
-        ['ne', 0, -1, scale(ctx, 'sw')],
-        ['n', -1, 0, scale(ctx, 's')],
+        ['nw', 0, 0, scale(ctx, 'ne', 'sw')],
+        ['w', 0, 1, scale(ctx, 'e', null)],
+        ['sw', 0, 1, scale(ctx, 'se', 'nw')],
+        ['s', 1, 0, scale(ctx, null, 'n')],
+        ['se', 1, 0, scale(ctx, 'sw', 'ne')],
+        ['e', 0, -1, scale(ctx, 'w', null)],
+        ['ne', 0, -1, scale(ctx, 'nw', 'se')],
+        ['n', -1, 0, scale(ctx, null, 's')],
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
@@ -291,7 +289,7 @@ function extent(ctx) {
                 .attr('cx', p.x - ox)
                 .attr('cy', p.y - oy);
 
-            if (i%2 === 0 && i!== pts.length-1) {
+            if (i % 2 === 0 && i !== pts.length - 1) {
                 d += !d ? "M" : "L";
                 d += (p.x - ox) + ",";
                 d += (p.y - oy) + " ";
@@ -330,7 +328,7 @@ module.exports = function (ctx) {
     });
 };
 
-},{"../mode/circle":14,"../mode/line":15,"../mode/pen":16,"../mode/rect":17}],7:[function(require,module,exports){
+},{"../mode/circle":15,"../mode/line":16,"../mode/pen":17,"../mode/rect":18}],7:[function(require,module,exports){
 // app/panzoom.js
 
 module.exports = panzoom;
@@ -358,6 +356,7 @@ function panzoom(ctx) {
     }
 
     function createZoom() {
+
         return d3.zoom()
             .filter(function () {
                 return true;
@@ -366,7 +365,8 @@ function panzoom(ctx) {
             .on("zoom", function() {
                 ctx.transform = d3.event.transform;
                 applyTransform();
-            });
+            })
+
     }
 }
 
@@ -442,22 +442,95 @@ function rotate(ctx, center) {
 }
 
 },{"./svg":10}],9:[function(require,module,exports){
-module.exports = function (ctx, opposite) {
+var Vector = require('./vector');
+
+module.exports = function (ctx, oppositeX, oppositeY) {
     return function (knob) {
-        var op = d3.select('circle.knob,' + opposite);
         return d3.drag()
             .on("start", function (d) {
-                console.log('scale start', d)
+                d.lineX = line(knob, oppositeX);
+                d.lineY = line(knob, oppositeY);
+                d.start = {
+                    x: +knob.attr('cx'),
+                    y: +knob.attr('cy')
+                }
             })
             .on("drag", function (d) {
-                console.log('scale ', d)
+                if (d.lineX && !d.lineY)
+                    calcLine(d, d.lineX);
+                if (!d.lineX && d.lineY)
+                    calcLine(d, d.lineY);
+
+                if (d.lineX && d.lineY) {
+                }
+
+                upd(d.lineX);
+                upd(d.lineY);
             })
             .on("end", function (d) {
-                console.log('scale end', d)
-            })
+                del(d, 'lineX');
+                del(d, 'lineY');
+            });
+
+        function calcLine(d, line) {
+
+            var datum = line.datum();
+
+            var v1 = new Vector(
+                d.start.x - datum.x1,
+                d.start.y - datum.y1
+            );
+
+            var v2 = new Vector(
+                d3.event.x - datum.x1,
+                d3.event.y - datum.y1
+            );
+
+            v1.normalize().multiply(v2.length()*Math.cos(v1.angleTo(v2)));
+
+            datum.x2 = +datum.x1 + v1.x;
+            datum.y2 = +datum.y1 + v1.y;
+        }
     };
+
+    function del(d, key) {
+        if (!d[key])
+            return;
+        d[key].remove();
+        d[key] = null;
+    }
+
+    function upd(line) {
+        if (!line)
+            return;
+
+        line.attr('x1', function (d) {
+            return d.x1
+        }).attr('y1', function (d) {
+            return d.y1
+        }).attr('x2', function (d) {
+            return d.x2
+        }).attr('y2', function (d) {
+            return d.y2
+        })
+    }
+
+    function line(knob, op) {
+        if (!op)
+            return;
+        op = d3.select('circle.knob.' + op);
+        return ctx.svg.append('line')
+            .datum({
+                x1: +op.attr('cx'),
+                y1: +op.attr('cy'),
+                x2: +knob.attr('cx'),
+                y2: +knob.attr('cy')
+            })
+            .attr('stroke-width', 1.8)
+            .attr('stroke', 'red')
+    }
 };
-},{}],10:[function(require,module,exports){
+},{"./vector":13}],10:[function(require,module,exports){
 // app/svg.js
 
 var ctx;
@@ -634,6 +707,101 @@ module.exports = function (ctx) {
 };
 
 },{}],13:[function(require,module,exports){
+module.exports = Vector;
+
+function Vector(x, y) {
+    this.x = x || 0;
+    this.y = y || 0;
+}
+
+Vector.prototype = {
+    negative: function() {
+        this.x = -this.x;
+        this.y = -this.y;
+        return this;
+    },
+    add: function(v) {
+        if (v instanceof Vector) {
+            this.x += v.x;
+            this.y += v.y;
+        } else {
+            this.x += v;
+            this.y += v;
+        }
+        return this;
+    },
+    subtract: function(v) {
+        if (v instanceof Vector) {
+            this.x -= v.x;
+            this.y -= v.y;
+        } else {
+            this.x -= v;
+            this.y -= v;
+        }
+        return this;
+    },
+    multiply: function(v) {
+        if (v instanceof Vector) {
+            this.x *= v.x;
+            this.y *= v.y;
+        } else {
+            this.x *= v;
+            this.y *= v;
+        }
+        return this;
+    },
+    divide: function(v) {
+        if (v instanceof Vector) {
+            if(v.x != 0) this.x /= v.x;
+            if(v.y != 0) this.y /= v.y;
+        } else {
+            if(v != 0) {
+                this.x /= v;
+                this.y /= v;
+            }
+        }
+        return this;
+    },
+    equals: function(v) {
+        return this.x == v.x && this.y == v.y;
+    },
+    dot: function(v) {
+        return this.x * v.x + this.y * v.y;
+    },
+    cross: function(v) {
+        return this.x * v.y - this.y * v.x
+    },
+    length: function() {
+        return Math.sqrt(this.dot(this));
+    },
+    normalize: function() {
+        return this.divide(this.length());
+    },
+    min: function() {
+        return Math.min(this.x, this.y);
+    },
+    max: function() {
+        return Math.max(this.x, this.y);
+    },
+    toAngles: function() {
+        return -Math.atan2(-this.y, this.x);
+    },
+    angleTo: function(a) {
+        return Math.acos(this.dot(a) / (this.length() * a.length()));
+    },
+    toArray: function(n) {
+        return [this.x, this.y].slice(0, n || 2);
+    },
+    clone: function() {
+        return new Vector(this.x, this.y);
+    },
+    set: function(x, y) {
+        this.x = x; this.y = y;
+        return this;
+    }
+};
+
+},{}],14:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -675,7 +843,7 @@ window.d3Paint = function (elementOrSelector) {
     return ctx.broker;
 };
 
-},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/panzoom":7,"./app/svg":10,"./app/undoredo":12}],14:[function(require,module,exports){
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/panzoom":7,"./app/svg":10,"./app/undoredo":12}],15:[function(require,module,exports){
 // mode/circle.js
 
 var active;
@@ -707,7 +875,7 @@ function dragMove(mouse) {
         })
 }
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -738,7 +906,7 @@ function dragMove(e) {
         .attr('y2', e.y)
 }
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -785,7 +953,7 @@ function dragMove(e) {
     ctx.active.attr("d", line);
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -822,4 +990,4 @@ function dragMove(e) {
         })
 }
 
-},{}]},{},[13]);
+},{}]},{},[14]);

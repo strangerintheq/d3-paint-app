@@ -19,14 +19,14 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0, scale(ctx, 'se')],
-        ['w', 0, 1, scale(ctx, 'e')],
-        ['sw', 0, 1, scale(ctx, 'ne')],
-        ['s', 1, 0, scale(ctx, 'n')],
-        ['se', 1, 0, scale(ctx, 'nw')],
-        ['e', 0, -1, scale(ctx, 'w')],
-        ['ne', 0, -1, scale(ctx, 'sw')],
-        ['n', -1, 0, scale(ctx, 's')],
+        ['nw', 0, 0, scale(ctx, 'ne', 'sw')],
+        ['w', 0, 1, scale(ctx, 'e', null)],
+        ['sw', 0, 1, scale(ctx, 'se', 'nw')],
+        ['s', 1, 0, scale(ctx, null, 'n')],
+        ['se', 1, 0, scale(ctx, 'sw', 'ne')],
+        ['e', 0, -1, scale(ctx, 'w', null)],
+        ['ne', 0, -1, scale(ctx, 'nw', 'se')],
+        ['n', -1, 0, scale(ctx, null, 's')],
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
@@ -76,7 +76,7 @@ function extent(ctx) {
                 .attr('cx', p.x - ox)
                 .attr('cy', p.y - oy);
 
-            if (i%2 === 0 && i!== pts.length-1) {
+            if (i % 2 === 0 && i !== pts.length - 1) {
                 d += !d ? "M" : "L";
                 d += (p.x - ox) + ",";
                 d += (p.y - oy) + " ";
