@@ -1,15 +1,29 @@
-module.exports = function (ctx, vxs, vxe, vys, vye) {
+var svgpath = require('svgpath');
+
+module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
     return function (knob) {
         return d3.drag()
             .on("start", function (d) {
                 d.lineX = line(knob, vxs, vxe);
                 d.lineY = line(knob, vys, vye);
+                d.path = ctx.active.node().firstChild.getAttribute('d');
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
-                upd(d.lineX);
-                upd(d.lineY);
+
+                var box = ctx.active.node().firstChild.getBBox();
+
+                var sx = box.x + dw * box.width;
+                var sy = box.y + dh * box.height;
+                var transformed = svgpath(d.path)
+                    .translate(-sx, -sy)
+                    .scale(d.lineX.datum().scale, d.lineY.datum().scale)
+                    .translate(sx, sy)
+                    .round(1);
+
+                ctx.active.node().firstChild.setAttribute('d', transformed.toString());
+                ctx.extent.updateExtent();
             })
             .on("end", function (d) {
                 del(d, 'lineX');
@@ -31,6 +45,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye) {
             datum.y1 = y3;
             datum.x2 = x3 - k * dy;
             datum.y2 = y3 + k * dx;
+
+            datum.scale = Math.sqrt(Math.pow(datum.x2-x1,2) + Math.pow(datum.y2-y1,2))/Math.sqrt(dx*dx + dy*dy);
             upd(line);
         }
 

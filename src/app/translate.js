@@ -14,6 +14,8 @@ module.exports = function (ctx) {
             action.endTranslate(d);
             ctx.broker.fire(ctx.broker.events.ACTION, action);
             action = null;
+            d.x = d3.event.x;
+            d.y = d3.event.y;
         });
 
     function drag(d) {
