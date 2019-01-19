@@ -8,8 +8,6 @@ var scale = require('./scale');
 
 function extent(ctx) {
 
-    var pt = ctx.svg.node().createSVGPoint();
-
     var extent = svg.g('extent');
 
     var path = extent.append('path')
