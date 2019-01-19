@@ -9,7 +9,7 @@ function rotate(ctx, center) {
         var action;
         return d3.drag()
             .on("start", function (d) {
-                fill(knob, 'rgba(0, 40, 255, 0.5)');
+                svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
                 var r = ctx.active.node().getBoundingClientRect();
                 d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
                 d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
@@ -29,7 +29,7 @@ function rotate(ctx, center) {
                 doRotate(ctx.active, a);
             })
             .on("end", function (d) {
-                fill(knob, 'transparent');
+                svg.fill(knob, 'transparent', 150);
                 center.attr('display', 'none');
                 action.endRotate();
                 ctx.broker.fire(ctx.broker.events.ACTION, action);
@@ -37,11 +37,7 @@ function rotate(ctx, center) {
             })
     };
 
-    function fill(el, col) {
-        el.transition()
-            .duration(100)
-            .style('fill', col)
-    }
+
 
     function doRotate(shape, r) {
         shape.datum().r = r;

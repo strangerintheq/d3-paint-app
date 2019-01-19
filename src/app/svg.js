@@ -1,20 +1,21 @@
 // app/svg.js
 
 var ctx;
-var pt;
-
+var pt1;
+var pt2;
 module.exports = {
 
     createPointCalc: function(node, pad) {
 
-        if (!pt) {
-            pt = ctx.svg.node().createSVGPoint();
+        if (!pt1) {
+            pt1 = ctx.svg.node().createSVGPoint();
+            pt2 = ctx.svg.node().createSVGPoint();
         }
 
         var bbox = node.node().getBBox();
         var matrix = node.node().getScreenCTM();
-        var hw = bbox.width / 2 + pad;
-        var hh = bbox.height / 2 + pad;
+        var hw = bbox.width / 2;
+        var hh = bbox.height / 2;
 
         reset();
 
@@ -22,15 +23,20 @@ module.exports = {
             reset : reset,
             shift: shift,
             calc: function () {
-                return pt.matrixTransform(matrix)
+                return {
+                    pad: pt1.matrixTransform(matrix),
+                    orig: pt2.matrixTransform(matrix)
+                }
             }
         };
 
         return calc;
 
         function shift(x, y, absolute) {
-            pt.x += offset(x, hw, absolute);
-            pt.y += offset(y, hh, absolute);
+            pt1.x += offset(x, hw + pad, absolute);
+            pt1.y += offset(y, hh+ pad, absolute);
+            pt2.x += offset(x, hw, absolute);
+            pt2.y += offset(y, hh, absolute);
             return calc;
         }
 
@@ -39,8 +45,10 @@ module.exports = {
         }
 
         function reset() {
-            pt.x = bbox.x - pad;
-            pt.y = bbox.y - pad;
+            pt1.x = bbox.x - pad;
+            pt1.y = bbox.y - pad;
+            pt2.x = bbox.x;
+            pt2.y = bbox.y;
             return calc;
         }
     },
@@ -69,5 +77,11 @@ module.exports = {
 
     g: function (className) {
         return ctx.svg.append('g').classed(className, true);
+    },
+
+    fill: function (el, col, t) {
+        el.transition()
+            .duration(t||0)
+            .style('fill', col)
     }
 };

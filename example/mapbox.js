@@ -1,7 +1,7 @@
 
 var lon = 30.2;
 var lat = 60;
-var zoom = 14;
+var zoom = 16;
 
 var map = new mapboxgl.Map({
     container: 'mapbox',

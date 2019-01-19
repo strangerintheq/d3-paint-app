@@ -1,9 +1,11 @@
 var svgpath = require('svgpath');
+var svg = require('./svg');
 
 module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
     return function (knob) {
         return d3.drag()
             .on("start", function (d) {
+                svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
                 d.lineX = line(knob, vxs, vxe);
                 d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
@@ -25,6 +27,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 ctx.extent.updateExtent();
             })
             .on("end", function (d) {
+                svg.fill(knob, 'transparent', 150);
                 del(d, 'lineX');
                 del(d, 'lineY');
                 d.path = null;
@@ -74,10 +77,10 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
         ve = d3.select('circle.knob.' + ve);
         return ctx.svg.append('line')
             .datum({
-                sx: +vs.attr('cx'),
-                sy: +vs.attr('cy'),
-                ex: +ve.attr('cx'),
-                ey: +ve.attr('cy')
+                sx: +vs.datum().x,
+                sy: +vs.datum().y,
+                ex: +ve.datum().x,
+                ey: +ve.datum().y
             })
             .attr('stroke-width', 1.8)
             .attr('stroke', 'red')

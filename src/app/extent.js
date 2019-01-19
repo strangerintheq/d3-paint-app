@@ -74,13 +74,17 @@ function extent(ctx) {
 
             d3.select('circle.' + placementKeys[i][0])
                 .attr('display', 'visible')
-                .attr('cx', p.x - ox)
-                .attr('cy', p.y - oy);
+                .attr('cx', p.pad.x - ox)
+                .attr('cy', p.pad.y - oy)
+                .datum({
+                    x: p.orig.x - ox,
+                    y: p.orig.y - oy
+                });
 
             if (i % 2 === 0 && i !== pts.length - 1) {
                 d += !d ? "M" : "L";
-                d += (p.x - ox) + ",";
-                d += (p.y - oy) + " ";
+                d += (p.pad.x - ox) + ",";
+                d += (p.pad.y - oy) + " ";
             }
 
         });

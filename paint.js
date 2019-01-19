@@ -1736,13 +1736,17 @@ function extent(ctx) {
 
             d3.select('circle.' + placementKeys[i][0])
                 .attr('display', 'visible')
-                .attr('cx', p.x - ox)
-                .attr('cy', p.y - oy);
+                .attr('cx', p.pad.x - ox)
+                .attr('cy', p.pad.y - oy)
+                .datum({
+                    x: p.orig.x - ox,
+                    y: p.orig.y - oy
+                });
 
             if (i % 2 === 0 && i !== pts.length - 1) {
                 d += !d ? "M" : "L";
-                d += (p.x - ox) + ",";
-                d += (p.y - oy) + " ";
+                d += (p.pad.x - ox) + ",";
+                d += (p.pad.y - oy) + " ";
             }
 
         });
@@ -1832,7 +1836,7 @@ function rotate(ctx, center) {
         var action;
         return d3.drag()
             .on("start", function (d) {
-                fill(knob, 'rgba(0, 40, 255, 0.5)');
+                svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
                 var r = ctx.active.node().getBoundingClientRect();
                 d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
                 d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
@@ -1852,7 +1856,7 @@ function rotate(ctx, center) {
                 doRotate(ctx.active, a);
             })
             .on("end", function (d) {
-                fill(knob, 'transparent');
+                svg.fill(knob, 'transparent', 150);
                 center.attr('display', 'none');
                 action.endRotate();
                 ctx.broker.fire(ctx.broker.events.ACTION, action);
@@ -1860,11 +1864,7 @@ function rotate(ctx, center) {
             })
     };
 
-    function fill(el, col) {
-        el.transition()
-            .duration(100)
-            .style('fill', col)
-    }
+
 
     function doRotate(shape, r) {
         shape.datum().r = r;
@@ -1980,11 +1980,13 @@ module.exports = function (ctx, oppositeX, oppositeY) {
 };
 },{"./vector":21}],17:[function(require,module,exports){
 var svgpath = require('svgpath');
+var svg = require('./svg');
 
 module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
     return function (knob) {
         return d3.drag()
             .on("start", function (d) {
+                svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
                 d.lineX = line(knob, vxs, vxe);
                 d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
@@ -2006,6 +2008,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 ctx.extent.updateExtent();
             })
             .on("end", function (d) {
+                svg.fill(knob, 'transparent', 150);
                 del(d, 'lineX');
                 del(d, 'lineY');
                 d.path = null;
@@ -2055,33 +2058,34 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
         ve = d3.select('circle.knob.' + ve);
         return ctx.svg.append('line')
             .datum({
-                sx: +vs.attr('cx'),
-                sy: +vs.attr('cy'),
-                ex: +ve.attr('cx'),
-                ey: +ve.attr('cy')
+                sx: +vs.datum().x,
+                sy: +vs.datum().y,
+                ex: +ve.datum().x,
+                ey: +ve.datum().y
             })
             .attr('stroke-width', 1.8)
             .attr('stroke', 'red')
     }
 };
-},{"svgpath":1}],18:[function(require,module,exports){
+},{"./svg":18,"svgpath":1}],18:[function(require,module,exports){
 // app/svg.js
 
 var ctx;
-var pt;
-
+var pt1;
+var pt2;
 module.exports = {
 
     createPointCalc: function(node, pad) {
 
-        if (!pt) {
-            pt = ctx.svg.node().createSVGPoint();
+        if (!pt1) {
+            pt1 = ctx.svg.node().createSVGPoint();
+            pt2 = ctx.svg.node().createSVGPoint();
         }
 
         var bbox = node.node().getBBox();
         var matrix = node.node().getScreenCTM();
-        var hw = bbox.width / 2 + pad;
-        var hh = bbox.height / 2 + pad;
+        var hw = bbox.width / 2;
+        var hh = bbox.height / 2;
 
         reset();
 
@@ -2089,15 +2093,20 @@ module.exports = {
             reset : reset,
             shift: shift,
             calc: function () {
-                return pt.matrixTransform(matrix)
+                return {
+                    pad: pt1.matrixTransform(matrix),
+                    orig: pt2.matrixTransform(matrix)
+                }
             }
         };
 
         return calc;
 
         function shift(x, y, absolute) {
-            pt.x += offset(x, hw, absolute);
-            pt.y += offset(y, hh, absolute);
+            pt1.x += offset(x, hw + pad, absolute);
+            pt1.y += offset(y, hh+ pad, absolute);
+            pt2.x += offset(x, hw, absolute);
+            pt2.y += offset(y, hh, absolute);
             return calc;
         }
 
@@ -2106,8 +2115,10 @@ module.exports = {
         }
 
         function reset() {
-            pt.x = bbox.x - pad;
-            pt.y = bbox.y - pad;
+            pt1.x = bbox.x - pad;
+            pt1.y = bbox.y - pad;
+            pt2.x = bbox.x;
+            pt2.y = bbox.y;
             return calc;
         }
     },
@@ -2136,6 +2147,12 @@ module.exports = {
 
     g: function (className) {
         return ctx.svg.append('g').classed(className, true);
+    },
+
+    fill: function (el, col, t) {
+        el.transition()
+            .duration(t||0)
+            .style('fill', col)
     }
 };
 
