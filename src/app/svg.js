@@ -1,8 +1,49 @@
 // app/svg.js
 
 var ctx;
+var pt;
 
 module.exports = {
+
+    createPointCalc: function(node, pad) {
+
+        if (!pt) {
+            pt = ctx.svg.node().createSVGPoint();
+        }
+
+        var bbox = node.node().getBBox();
+        var matrix = node.node().getScreenCTM();
+        var hw = bbox.width / 2 + pad;
+        var hh = bbox.height / 2 + pad;
+
+        reset();
+
+        var calc = {
+            reset : reset,
+            shift: shift,
+            calc: function () {
+                return pt.matrixTransform(matrix)
+            }
+        };
+
+        return calc;
+
+        function shift(x, y, absolute) {
+            pt.x += offset(x, hw, absolute);
+            pt.y += offset(y, hh, absolute);
+            return calc;
+        }
+
+        function offset(a, b, k) {
+            return k ? a/k : a*b;
+        }
+
+        function reset() {
+            pt.x = bbox.x - pad;
+            pt.y = bbox.y - pad;
+            return calc;
+        }
+    },
 
     setContext: function(c) {
         ctx = c

@@ -120,9 +120,7 @@ function canvas(ctx) {
 
     ctx.broker.on(ctx.broker.events.DELETE, function () {
         var deleted = ctx.active;
-
         del();
-
         ctx.broker.fire(ctx.broker.events.ACTION, {
             undo: function () {
                 canvas.node().appendChild(deleted.node());
@@ -137,8 +135,6 @@ function canvas(ctx) {
             ctx.active = null;
             ctx.extent.updateExtent();
         }
-
-
     });
 
     return {
@@ -149,7 +145,6 @@ function canvas(ctx) {
     };
 
     function drawStart() {
-
         var group = canvas
             .append('g')
             .style('cursor', 'move')
@@ -161,7 +156,6 @@ function canvas(ctx) {
             .dragStart(group, d3.event);
 
         applyBrush(ctx.active);
-
     }
 
     function applyBrush(active) {
@@ -171,14 +165,12 @@ function canvas(ctx) {
     }
 
     function drawEnd() {
-
         ctx.extent.updateExtent(ctx);
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx));
 
         action.endDraw();
-
         ctx.broker.fire(ctx.broker.events.ACTION, action);
     }
 
@@ -201,10 +193,9 @@ function canvas(ctx) {
             }
         }
     }
-
 }
 
-},{"./svg":9,"./translate":10}],4:[function(require,module,exports){
+},{"./svg":10,"./translate":11}],4:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
@@ -226,6 +217,7 @@ module.exports = extent;
 
 var svg = require('./svg');
 var rotate = require('./rotate');
+var scale = require('./scale');
 
 function extent(ctx) {
 
@@ -242,14 +234,14 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0],
-        ['w', 0, 1],
-        ['sw', 0, 1],
-        ['s', 1, 0],
-        ['se', 1, 0],
-        ['e', 0, -1],
-        ['ne', 0, -1],
-        ['n', -1, 0],
+        ['nw', 0, 0, scale(ctx, 'se')],
+        ['w', 0, 1, scale(ctx, 'e')],
+        ['sw', 0, 1, scale(ctx, 'ne')],
+        ['s', 1, 0, scale(ctx, 'n')],
+        ['se', 1, 0, scale(ctx, 'nw')],
+        ['e', 0, -1, scale(ctx, 'w')],
+        ['ne', 0, -1, scale(ctx, 'sw')],
+        ['n', -1, 0, scale(ctx, 's')],
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
@@ -277,36 +269,34 @@ function extent(ctx) {
             knobs.attr('display', 'none');
             return;
         }
-        var t = a.attr('stroke-width') ||
-            d3.select(a.node().firstChild).attr('stroke-width');
-        var bbox = a.node().getBBox();
-        var matrix = a.node().getScreenCTM();
-        var pad = 2 + t/2 / ctx.transform.k;
-        var hw = bbox.width / 2 + pad;
-        var hh = bbox.height / 2 + pad;
 
-        pt.x = bbox.x - pad;
-        pt.y = bbox.y - pad;
+        var thick = a.attr('stroke-width') ||
+            d3.select(a.node().firstChild).attr('stroke-width');
+
+        var pad = 2 + thick / 2 / ctx.transform.k;
+        var calc = svg.createPointCalc(a, pad);
 
         var pts = placementKeys.map(function (p) {
-            pt.x += offset(p[1], hw, ctx.transform.k);
-            pt.y += offset(p[2], hh, ctx.transform.k);
-            return pt.matrixTransform(matrix);
+            var absolute = Math.abs(p[2]) > 1.0001 ? ctx.transform.k : null;
+            return calc.shift(p[1], p[2], absolute).calc();
         });
 
         var ox = svg.screenOffsetX(ctx);
         var oy = svg.screenOffsetY(ctx);
         var d = "";
         pts.forEach(function (p, i) {
+
             d3.select('circle.' + placementKeys[i][0])
                 .attr('display', 'visible')
                 .attr('cx', p.x - ox)
                 .attr('cy', p.y - oy);
+
             if (i%2 === 0 && i!== pts.length-1) {
                 d += !d ? "M" : "L";
                 d += (p.x - ox) + ",";
                 d += (p.y - oy) + " ";
             }
+
         });
         path.attr('d', d + "Z");
     }
@@ -322,13 +312,9 @@ function extent(ctx) {
             .attr('stroke-width', 1.2)
             .attr('fill', 'transparent')
     }
-
-    function offset(a, b, k) {
-        return Math.abs(a) > 1.01 ? a/k : a*b;
-    }
 }
 
-},{"./rotate":8,"./svg":9}],6:[function(require,module,exports){
+},{"./rotate":8,"./scale":9,"./svg":10}],6:[function(require,module,exports){
 // app/modes.js
 
 var modes = {
@@ -344,7 +330,7 @@ module.exports = function (ctx) {
     });
 };
 
-},{"../mode/circle":13,"../mode/line":14,"../mode/pen":15,"../mode/rect":16}],7:[function(require,module,exports){
+},{"../mode/circle":14,"../mode/line":15,"../mode/pen":16,"../mode/rect":17}],7:[function(require,module,exports){
 // app/panzoom.js
 
 module.exports = panzoom;
@@ -455,12 +441,69 @@ function rotate(ctx, center) {
     }
 }
 
-},{"./svg":9}],9:[function(require,module,exports){
+},{"./svg":10}],9:[function(require,module,exports){
+module.exports = function (ctx, opposite) {
+    return function (knob) {
+        var op = d3.select('circle.knob,' + opposite);
+        return d3.drag()
+            .on("start", function (d) {
+                console.log('scale start', d)
+            })
+            .on("drag", function (d) {
+                console.log('scale ', d)
+            })
+            .on("end", function (d) {
+                console.log('scale end', d)
+            })
+    };
+};
+},{}],10:[function(require,module,exports){
 // app/svg.js
 
 var ctx;
+var pt;
 
 module.exports = {
+
+    createPointCalc: function(node, pad) {
+
+        if (!pt) {
+            pt = ctx.svg.node().createSVGPoint();
+        }
+
+        var bbox = node.node().getBBox();
+        var matrix = node.node().getScreenCTM();
+        var hw = bbox.width / 2 + pad;
+        var hh = bbox.height / 2 + pad;
+
+        reset();
+
+        var calc = {
+            reset : reset,
+            shift: shift,
+            calc: function () {
+                return pt.matrixTransform(matrix)
+            }
+        };
+
+        return calc;
+
+        function shift(x, y, absolute) {
+            pt.x += offset(x, hw, absolute);
+            pt.y += offset(y, hh, absolute);
+            return calc;
+        }
+
+        function offset(a, b, k) {
+            return k ? a/k : a*b;
+        }
+
+        function reset() {
+            pt.x = bbox.x - pad;
+            pt.y = bbox.y - pad;
+            return calc;
+        }
+    },
 
     setContext: function(c) {
         ctx = c
@@ -489,7 +532,7 @@ module.exports = {
     }
 };
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var svg = require('./svg');
 
 module.exports = function (ctx) {
@@ -545,7 +588,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{"./svg":9}],11:[function(require,module,exports){
+},{"./svg":10}],12:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -590,7 +633,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -632,7 +675,7 @@ window.d3Paint = function (elementOrSelector) {
     return ctx.broker;
 };
 
-},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/panzoom":7,"./app/svg":9,"./app/undoredo":11}],13:[function(require,module,exports){
+},{"./app/axes":1,"./app/broker":2,"./app/canvas":3,"./app/extent":5,"./app/modes":6,"./app/panzoom":7,"./app/svg":10,"./app/undoredo":12}],14:[function(require,module,exports){
 // mode/circle.js
 
 var active;
@@ -664,7 +707,7 @@ function dragMove(mouse) {
         })
 }
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -695,7 +738,7 @@ function dragMove(e) {
         .attr('y2', e.y)
 }
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -742,7 +785,7 @@ function dragMove(e) {
     ctx.active.attr("d", line);
 }
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -779,4 +822,4 @@ function dragMove(e) {
         })
 }
 
-},{}]},{},[12]);
+},{}]},{},[13]);

@@ -35,9 +35,7 @@ function canvas(ctx) {
 
     ctx.broker.on(ctx.broker.events.DELETE, function () {
         var deleted = ctx.active;
-
         del();
-
         ctx.broker.fire(ctx.broker.events.ACTION, {
             undo: function () {
                 canvas.node().appendChild(deleted.node());
@@ -52,8 +50,6 @@ function canvas(ctx) {
             ctx.active = null;
             ctx.extent.updateExtent();
         }
-
-
     });
 
     return {
@@ -64,7 +60,6 @@ function canvas(ctx) {
     };
 
     function drawStart() {
-
         var group = canvas
             .append('g')
             .style('cursor', 'move')
@@ -76,7 +71,6 @@ function canvas(ctx) {
             .dragStart(group, d3.event);
 
         applyBrush(ctx.active);
-
     }
 
     function applyBrush(active) {
@@ -86,14 +80,12 @@ function canvas(ctx) {
     }
 
     function drawEnd() {
-
         ctx.extent.updateExtent(ctx);
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx));
 
         action.endDraw();
-
         ctx.broker.fire(ctx.broker.events.ACTION, action);
     }
 
@@ -116,5 +108,4 @@ function canvas(ctx) {
             }
         }
     }
-
 }
