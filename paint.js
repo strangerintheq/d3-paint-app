@@ -1988,20 +1988,19 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 d.lineX = line(knob, vxs, vxe);
                 d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
+                var box = ctx.active.node().firstChild.getBBox();
+                d.boxX = box.x+ dw * box.width;
+                d.boxY = box.y+ dh * box.height;
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
 
-                var box = ctx.active.node().firstChild.getBBox();
-
-                var sx = box.x + dw * box.width;
-                var sy = box.y + dh * box.height;
                 var transformed = svgpath(d.path)
-                    .translate(-sx, -sy)
+                    .translate(- d.boxX, -d.boxY)
                     .scale(d.lineX.datum().scale, d.lineY.datum().scale)
-                    .translate(sx, sy)
-                    .round(1);
+                    .translate( d.boxX, d.boxY)
+                    .round(3);
 
                 ctx.active.node().firstChild.setAttribute('d', transformed.toString());
                 ctx.extent.updateExtent();
@@ -2009,6 +2008,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             .on("end", function (d) {
                 del(d, 'lineX');
                 del(d, 'lineY');
+                d.path = null;
             });
 
         function calc(line) {
@@ -2392,8 +2392,8 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, mouse) {
-    active = group.append("circle")
-        .classed('figure', true)
+    active = group.append("path")
+        .classed('figure ellipse', true)
         .datum(mouse);
 
     dragMove(mouse);
@@ -2402,15 +2402,25 @@ function dragStart(group, mouse) {
 }
 
 function dragMove(mouse) {
-    active.attr('cx', function (d) {return d.x;})
-        .attr('cy', function (d) {return d.y;})
-        .attr('r', function (d) {
+    active
+        // .attr('cx', function (d) {return d.x;})
+        // .attr('cy', function (d) {return d.y;})
+        // .attr('r', function (d) {
+        //     var x = mouse.x - d.x;
+        //     var y = mouse.y - d.y;
+        //     return Math.sqrt(x*x + y*y);
+        // })
+        .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
-            return Math.sqrt(x*x + y*y);
+            return getPath(d.x, d.y, Math.sqrt(x*x + y*y))
         })
 }
 
+
+function getPath(cx,cy,r){
+    return "M" + cx + "," + cy + "m" + (-r) + ",0a" + r + "," + r + " 0 1,0 " + (r * 2) + ",0a" + r + "," + r + " 0 1,0 " + (-r * 2) + ",0";
+}
 },{}],24:[function(require,module,exports){
 // mode/line.js
 
@@ -2425,11 +2435,12 @@ module.exports = mode;
 
 function dragStart(group, e) {
 
-    active = group.append("line")
-        .classed('figure', true)
-        .attr('x1', e.x)
-        .attr('y1', e.y)
-        .datum(e.subject);
+    active = group.append("path")
+        .classed('figure line', true)
+        .datum({
+            x1: e.x,
+            y1: e.y
+        });
 
     dragMove(e);
 
@@ -2437,9 +2448,14 @@ function dragStart(group, e) {
 }
 
 function dragMove(e) {
-    active
-        .attr('x2', e.x)
-        .attr('y2', e.y)
+
+    active.datum().x2 = e.x;
+    active.datum().y2 = e.y;
+
+    active.attr('d', function (d) {
+        return 'M ' + d.x1 + ',' + d.y1 + ' L ' + d.x2 + ',' + d.y2;
+    });
+
 }
 
 },{}],25:[function(require,module,exports){
@@ -2502,27 +2518,30 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, e) {
-    active = group.append("rect")
-        .classed('figure', true)
-        .datum([[e.x, e.y], [e.x, e.y]]);
+    active = group.append("path")
+        .classed('figure rectangle', true)
+        .datum({
+            x: e.x,
+            y: e.y
+        });
 
     dragMove(e);
     return active;
 }
 
 function dragMove(e) {
+    var d = active.datum();
+
+    d.w = e.x - d.x;
+    d.h = e.y - d.y;
+
     active
-        .attr('x', function (d) {
-            return Math.min(e.x, d[0][0]);
-        })
-        .attr('y', function (d) {
-            return Math.min(e.y, d[0][1]);
-        })
-        .attr('width', function (d) {
-            return Math.abs(e.x - d[0][0]);
-        })
-        .attr('height', function (d) {
-            return Math.abs(e.y - d[0][1]);
+        .attr('d', function (d) {
+            return 'M' + d.x + ',' + d.y +
+                'L' + (d.x + d.w) +',' + d.y +
+                'L' + (d.x + d.w) +',' + (d.y + d.h) +
+                'L' + d.x +',' + (d.y + d.h) +
+                'z'
         })
 }
 

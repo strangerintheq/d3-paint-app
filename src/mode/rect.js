@@ -10,26 +10,29 @@ var mode = {
 module.exports = mode;
 
 function dragStart(group, e) {
-    active = group.append("rect")
-        .classed('figure', true)
-        .datum([[e.x, e.y], [e.x, e.y]]);
+    active = group.append("path")
+        .classed('figure rectangle', true)
+        .datum({
+            x: e.x,
+            y: e.y
+        });
 
     dragMove(e);
     return active;
 }
 
 function dragMove(e) {
+    var d = active.datum();
+
+    d.w = e.x - d.x;
+    d.h = e.y - d.y;
+
     active
-        .attr('x', function (d) {
-            return Math.min(e.x, d[0][0]);
-        })
-        .attr('y', function (d) {
-            return Math.min(e.y, d[0][1]);
-        })
-        .attr('width', function (d) {
-            return Math.abs(e.x - d[0][0]);
-        })
-        .attr('height', function (d) {
-            return Math.abs(e.y - d[0][1]);
+        .attr('d', function (d) {
+            return 'M' + d.x + ',' + d.y +
+                'L' + (d.x + d.w) +',' + d.y +
+                'L' + (d.x + d.w) +',' + (d.y + d.h) +
+                'L' + d.x +',' + (d.y + d.h) +
+                'z'
         })
 }

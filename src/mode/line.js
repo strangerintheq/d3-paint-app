@@ -11,11 +11,12 @@ module.exports = mode;
 
 function dragStart(group, e) {
 
-    active = group.append("line")
-        .classed('figure', true)
-        .attr('x1', e.x)
-        .attr('y1', e.y)
-        .datum(e.subject);
+    active = group.append("path")
+        .classed('figure line', true)
+        .datum({
+            x1: e.x,
+            y1: e.y
+        });
 
     dragMove(e);
 
@@ -23,7 +24,12 @@ function dragStart(group, e) {
 }
 
 function dragMove(e) {
-    active
-        .attr('x2', e.x)
-        .attr('y2', e.y)
+
+    active.datum().x2 = e.x;
+    active.datum().y2 = e.y;
+
+    active.attr('d', function (d) {
+        return 'M ' + d.x1 + ',' + d.y1 + ' L ' + d.x2 + ',' + d.y2;
+    });
+
 }

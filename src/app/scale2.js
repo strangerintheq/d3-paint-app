@@ -7,20 +7,19 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 d.lineX = line(knob, vxs, vxe);
                 d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
+                var box = ctx.active.node().firstChild.getBBox();
+                d.boxX = box.x+ dw * box.width;
+                d.boxY = box.y+ dh * box.height;
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
 
-                var box = ctx.active.node().firstChild.getBBox();
-
-                var sx = box.x + dw * box.width;
-                var sy = box.y + dh * box.height;
                 var transformed = svgpath(d.path)
-                    .translate(-sx, -sy)
+                    .translate(- d.boxX, -d.boxY)
                     .scale(d.lineX.datum().scale, d.lineY.datum().scale)
-                    .translate(sx, sy)
-                    .round(1);
+                    .translate( d.boxX, d.boxY)
+                    .round(3);
 
                 ctx.active.node().firstChild.setAttribute('d', transformed.toString());
                 ctx.extent.updateExtent();
@@ -28,6 +27,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             .on("end", function (d) {
                 del(d, 'lineX');
                 del(d, 'lineY');
+                d.path = null;
             });
 
         function calc(line) {
