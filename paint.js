@@ -1644,7 +1644,7 @@ function canvas(ctx) {
     }
 }
 
-},{"./svg":18,"./translate":19}],11:[function(require,module,exports){
+},{"./svg":17,"./translate":18}],11:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
@@ -1666,8 +1666,7 @@ module.exports = extent;
 
 var svg = require('./svg');
 var rotate = require('./rotate');
-var scale = require('./scale');
-var scale2 = require('./scale2');
+var scale = require('./scale2');
 
 function extent(ctx) {
 
@@ -1682,14 +1681,14 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0, scale2(ctx, 'se', 'sw', 'se', 'ne',1,1)],
-        ['w', 0, 1, scale(ctx, 'e', null)],
-        ['sw', 0, 1, scale2(ctx, 'ne', 'nw', 'ne', 'se',1,0)],
-        ['s', 1, 0, scale(ctx, null, 'n')],
-        ['se', 1, 0, scale2(ctx, 'nw','ne','nw', 'sw',0,0)],
-        ['e', 0, -1, scale(ctx, 'w', null)],
-        ['ne', 0, -1, scale2(ctx, 'sw', 'se','sw', 'nw',0,1)],
-        ['n', -1, 0, scale(ctx, null, 's')],
+        ['nw', 0, 0, scale(ctx, 'se', 'sw', 'se', 'ne',1,1)],
+        ['w', 0, 1, scale(ctx, 'e', 'w', null,null, 1, 0.5)],
+        ['sw', 0, 1, scale(ctx, 'ne', 'nw', 'ne', 'se',1,0)],
+        ['s', 1, 0, scale(ctx, null, null, 'n', 's', 0.5, 0)],
+        ['se', 1, 0, scale(ctx, 'nw','ne','nw', 'sw',0,0)],
+        ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5)],
+        ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1)],
+        ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1)],
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
@@ -1766,7 +1765,7 @@ function extent(ctx) {
     }
 }
 
-},{"./rotate":15,"./scale":16,"./scale2":17,"./svg":18}],13:[function(require,module,exports){
+},{"./rotate":15,"./scale2":16,"./svg":17}],13:[function(require,module,exports){
 // app/modes.js
 
 var modes = {
@@ -1782,7 +1781,7 @@ module.exports = function (ctx) {
     });
 };
 
-},{"../mode/circle":23,"../mode/line":24,"../mode/pen":25,"../mode/rect":26}],14:[function(require,module,exports){
+},{"../mode/circle":21,"../mode/line":22,"../mode/pen":23,"../mode/rect":24}],14:[function(require,module,exports){
 // app/panzoom.js
 
 module.exports = panzoom;
@@ -1891,94 +1890,7 @@ function rotate(ctx, center) {
     }
 }
 
-},{"./svg":18}],16:[function(require,module,exports){
-var Vector = require('./vector');
-
-module.exports = function (ctx, oppositeX, oppositeY) {
-    return function (knob) {
-        return d3.drag()
-            .on("start", function (d) {
-                d.lineX = line(knob, oppositeX);
-                d.lineY = line(knob, oppositeY);
-                d.start = {
-                    x: +knob.attr('cx'),
-                    y: +knob.attr('cy')
-                }
-            })
-            .on("drag", function (d) {
-                if (d.lineX && !d.lineY)
-                    calcLine(d, d.lineX);
-
-                if (!d.lineX && d.lineY)
-                    calcLine(d, d.lineY);
-
-                upd(d.lineX);
-                upd(d.lineY);
-            })
-            .on("end", function (d) {
-                del(d, 'lineX');
-                del(d, 'lineY');
-            });
-
-        function calcLine(d, line) {
-
-            var datum = line.datum();
-
-            var v1 = new Vector(
-                d.start.x - datum.x1,
-                d.start.y - datum.y1
-            );
-
-            var v2 = new Vector(
-                d3.event.x - datum.x1,
-                d3.event.y - datum.y1
-            );
-
-            v1.normalize().multiply(v2.length()*Math.cos(v1.angleTo(v2)));
-
-            datum.x2 = +datum.x1 + v1.x;
-            datum.y2 = +datum.y1 + v1.y;
-        }
-    };
-
-    function del(d, key) {
-        if (!d[key])
-            return;
-        d[key].remove();
-        d[key] = null;
-    }
-
-    function upd(line) {
-        if (!line)
-            return;
-
-        line.attr('x1', function (d) {
-            return d.x1
-        }).attr('y1', function (d) {
-            return d.y1
-        }).attr('x2', function (d) {
-            return d.x2
-        }).attr('y2', function (d) {
-            return d.y2
-        })
-    }
-
-    function line(knob, op) {
-        if (!op)
-            return;
-        op = d3.select('circle.knob.' + op);
-        return ctx.svg.append('line')
-            .datum({
-                x1: +op.attr('cx'),
-                y1: +op.attr('cy'),
-                x2: +knob.attr('cx'),
-                y2: +knob.attr('cy')
-            })
-            .attr('stroke-width', 1.8)
-            .attr('stroke', 'red')
-    }
-};
-},{"./vector":21}],17:[function(require,module,exports){
+},{"./svg":17}],16:[function(require,module,exports){
 var svgpath = require('svgpath');
 var svg = require('./svg');
 
@@ -1987,24 +1899,31 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
         return d3.drag()
             .on("start", function (d) {
                 svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
-                d.lineX = line(knob, vxs, vxe);
-                d.lineY = line(knob, vys, vye);
+                if (vxs && vxe)
+                    d.lineX = line(knob, vxs, vxe);
+                if (vys && vye)
+                    d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
                 var box = ctx.active.node().firstChild.getBBox();
-                d.boxX = box.x+ dw * box.width;
-                d.boxY = box.y+ dh * box.height;
+                d.boxX = box.x + dw * box.width;
+                d.boxY = box.y + dh * box.height;
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
 
                 var transformed = svgpath(d.path)
-                    .translate(- d.boxX, -d.boxY)
-                    .scale(d.lineX.datum().scale, d.lineY.datum().scale)
+
+                    .translate(-d.boxX, -d.boxY)
+                    .scale(
+                        d.lineX ? d.lineX.datum().scale : 1,
+                        d.lineY ? d.lineY.datum().scale : 1
+                    )
                     .translate( d.boxX, d.boxY)
-                    .round(3);
+                    .round(1);
 
                 ctx.active.node().firstChild.setAttribute('d', transformed.toString());
+              //  ctx.active.attr('transform', svg.getTransform);
                 ctx.extent.updateExtent();
             })
             .on("end", function (d) {
@@ -2015,28 +1934,28 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             });
 
         function calc(line) {
+            if (!line)
+                return;
             var datum = line.datum();
-            var x1 = datum.sx;
-            var y1 = datum.sy;
-            var x2 = datum.ex;
-            var y2 = datum.ey;
-            var x3 = d3.event.x;
-            var y3 = d3.event.y;
-            var dx = x2-x1;
-            var dy = y2-y1;
+            var x1 = datum.sx, y1 = datum.sy;
+            var x2 = datum.ex, y2 = datum.ey;
+            var x3 = d3.event.x, y3 = d3.event.y;
+            var dx = x2-x1, dy = y2-y1;
             var k = (dy * (x3-x1) - dx * (y3-y1)) / (dy*dy + dx*dx);
-            datum.x1 = x3;
-            datum.y1 = y3;
+            datum.x1 = x3; datum.y1 = y3;
             datum.x2 = x3 - k * dy;
             datum.y2 = y3 + k * dx;
-
-            datum.scale = Math.sqrt(Math.pow(datum.x2-x1,2) + Math.pow(datum.y2-y1,2))/Math.sqrt(dx*dx + dy*dy);
+            datum.scale = Math.sqrt(
+                Math.pow(datum.x2-x1,2) + Math.pow(datum.y2-y1,2)
+            )/ Math.sqrt(dx*dx + dy*dy);
             upd(line);
         }
 
     };
 
     function del(d, key) {
+        if(!d[key])
+            return;
         d[key].remove();
         d[key] = null;
     }
@@ -2067,7 +1986,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             .attr('stroke', 'red')
     }
 };
-},{"./svg":18,"svgpath":1}],18:[function(require,module,exports){
+},{"./svg":17,"svgpath":1}],17:[function(require,module,exports){
 // app/svg.js
 
 var ctx;
@@ -2131,8 +2050,11 @@ module.exports = {
         var r = ctx.active.node().getBBox();
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return 'rotate(' + d.r + ',' + (x + d.x) + ',' + (y + d.y) + ')' +
-            'translate(' + d.x + ',' + d.y + ')';
+        return ''
+            + 'rotate(' + d.r + ',' + (x + d.x) + ',' + (y + d.y) + ')'
+            + 'translate(' + d.x + ',' + d.y + ')'
+
+
     },
 
     screenOffsetX: function () {
@@ -2156,7 +2078,7 @@ module.exports = {
     }
 };
 
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var svg = require('./svg');
 
 module.exports = function (ctx) {
@@ -2166,6 +2088,7 @@ module.exports = function (ctx) {
     return d3.drag()
         .on("start", function (d) {
             activate(d3.select(this));
+            console.log(d3.select(this).attr('transform'), d3.select(this).datum())
             drag(d);
         })
         .on("drag", drag)
@@ -2173,8 +2096,8 @@ module.exports = function (ctx) {
             action.endTranslate(d);
             ctx.broker.fire(ctx.broker.events.ACTION, action);
             action = null;
-            d.x = d3.event.x;
-            d.y = d3.event.y;
+
+            console.log(d3.select(this).attr('transform'), d3.select(this).datum())
         });
 
     function drag(d) {
@@ -2214,7 +2137,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{"./svg":18}],20:[function(require,module,exports){
+},{"./svg":17}],19:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -2259,102 +2182,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{}],21:[function(require,module,exports){
-module.exports = Vector;
-
-function Vector(x, y) {
-    this.x = x || 0;
-    this.y = y || 0;
-}
-
-Vector.prototype = {
-    negative: function() {
-        this.x = -this.x;
-        this.y = -this.y;
-        return this;
-    },
-    add: function(v) {
-        if (v instanceof Vector) {
-            this.x += v.x;
-            this.y += v.y;
-        } else {
-            this.x += v;
-            this.y += v;
-        }
-        return this;
-    },
-    subtract: function(v) {
-        if (v instanceof Vector) {
-            this.x -= v.x;
-            this.y -= v.y;
-        } else {
-            this.x -= v;
-            this.y -= v;
-        }
-        return this;
-    },
-    multiply: function(v) {
-        if (v instanceof Vector) {
-            this.x *= v.x;
-            this.y *= v.y;
-        } else {
-            this.x *= v;
-            this.y *= v;
-        }
-        return this;
-    },
-    divide: function(v) {
-        if (v instanceof Vector) {
-            if(v.x != 0) this.x /= v.x;
-            if(v.y != 0) this.y /= v.y;
-        } else {
-            if(v != 0) {
-                this.x /= v;
-                this.y /= v;
-            }
-        }
-        return this;
-    },
-    equals: function(v) {
-        return this.x == v.x && this.y == v.y;
-    },
-    dot: function(v) {
-        return this.x * v.x + this.y * v.y;
-    },
-    cross: function(v) {
-        return this.x * v.y - this.y * v.x
-    },
-    length: function() {
-        return Math.sqrt(this.dot(this));
-    },
-    normalize: function() {
-        return this.divide(this.length());
-    },
-    min: function() {
-        return Math.min(this.x, this.y);
-    },
-    max: function() {
-        return Math.max(this.x, this.y);
-    },
-    toAngles: function() {
-        return -Math.atan2(-this.y, this.x);
-    },
-    angleTo: function(a) {
-        return Math.acos(this.dot(a) / (this.length() * a.length()));
-    },
-    toArray: function(n) {
-        return [this.x, this.y].slice(0, n || 2);
-    },
-    clone: function() {
-        return new Vector(this.x, this.y);
-    },
-    set: function(x, y) {
-        this.x = x; this.y = y;
-        return this;
-    }
-};
-
-},{}],22:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -2396,7 +2224,7 @@ window.d3Paint = function (elementOrSelector) {
     return ctx.broker;
 };
 
-},{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/extent":12,"./app/modes":13,"./app/panzoom":14,"./app/svg":18,"./app/undoredo":20}],23:[function(require,module,exports){
+},{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/extent":12,"./app/modes":13,"./app/panzoom":14,"./app/svg":17,"./app/undoredo":19}],21:[function(require,module,exports){
 // mode/circle.js
 
 var active;
@@ -2438,7 +2266,7 @@ function dragMove(mouse) {
 function getPath(cx,cy,r){
     return "M" + cx + "," + cy + "m" + (-r) + ",0a" + r + "," + r + " 0 1,0 " + (r * 2) + ",0a" + r + "," + r + " 0 1,0 " + (-r * 2) + ",0";
 }
-},{}],24:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -2475,7 +2303,7 @@ function dragMove(e) {
 
 }
 
-},{}],25:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -2522,7 +2350,7 @@ function dragMove(e) {
     ctx.active.attr("d", line);
 }
 
-},{}],26:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -2562,4 +2390,4 @@ function dragMove(e) {
         })
 }
 
-},{}]},{},[22]);
+},{}]},{},[20]);

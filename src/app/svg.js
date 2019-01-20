@@ -61,8 +61,11 @@ module.exports = {
         var r = ctx.active.node().getBBox();
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return 'rotate(' + d.r + ',' + (x + d.x) + ',' + (y + d.y) + ')' +
-            'translate(' + d.x + ',' + d.y + ')';
+        return ''
+            + 'rotate(' + d.r + ',' + (x + d.x) + ',' + (y + d.y) + ')'
+            + 'translate(' + d.x + ',' + d.y + ')'
+
+
     },
 
     screenOffsetX: function () {

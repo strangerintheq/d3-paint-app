@@ -7,6 +7,7 @@ module.exports = function (ctx) {
     return d3.drag()
         .on("start", function (d) {
             activate(d3.select(this));
+            console.log(d3.select(this).attr('transform'), d3.select(this).datum())
             drag(d);
         })
         .on("drag", drag)
@@ -14,8 +15,8 @@ module.exports = function (ctx) {
             action.endTranslate(d);
             ctx.broker.fire(ctx.broker.events.ACTION, action);
             action = null;
-            d.x = d3.event.x;
-            d.y = d3.event.y;
+
+            console.log(d3.select(this).attr('transform'), d3.select(this).datum())
         });
 
     function drag(d) {

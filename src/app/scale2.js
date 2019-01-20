@@ -6,24 +6,31 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
         return d3.drag()
             .on("start", function (d) {
                 svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
-                d.lineX = line(knob, vxs, vxe);
-                d.lineY = line(knob, vys, vye);
+                if (vxs && vxe)
+                    d.lineX = line(knob, vxs, vxe);
+                if (vys && vye)
+                    d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
                 var box = ctx.active.node().firstChild.getBBox();
-                d.boxX = box.x+ dw * box.width;
-                d.boxY = box.y+ dh * box.height;
+                d.boxX = box.x + dw * box.width;
+                d.boxY = box.y + dh * box.height;
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
 
                 var transformed = svgpath(d.path)
-                    .translate(- d.boxX, -d.boxY)
-                    .scale(d.lineX.datum().scale, d.lineY.datum().scale)
+
+                    .translate(-d.boxX, -d.boxY)
+                    .scale(
+                        d.lineX ? d.lineX.datum().scale : 1,
+                        d.lineY ? d.lineY.datum().scale : 1
+                    )
                     .translate( d.boxX, d.boxY)
-                    .round(3);
+                    .round(1);
 
                 ctx.active.node().firstChild.setAttribute('d', transformed.toString());
+                ctx.active.attr('transform', svg.getTransform);
                 ctx.extent.updateExtent();
             })
             .on("end", function (d) {
@@ -34,28 +41,28 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             });
 
         function calc(line) {
+            if (!line)
+                return;
             var datum = line.datum();
-            var x1 = datum.sx;
-            var y1 = datum.sy;
-            var x2 = datum.ex;
-            var y2 = datum.ey;
-            var x3 = d3.event.x;
-            var y3 = d3.event.y;
-            var dx = x2-x1;
-            var dy = y2-y1;
+            var x1 = datum.sx, y1 = datum.sy;
+            var x2 = datum.ex, y2 = datum.ey;
+            var x3 = d3.event.x, y3 = d3.event.y;
+            var dx = x2-x1, dy = y2-y1;
             var k = (dy * (x3-x1) - dx * (y3-y1)) / (dy*dy + dx*dx);
-            datum.x1 = x3;
-            datum.y1 = y3;
+            datum.x1 = x3; datum.y1 = y3;
             datum.x2 = x3 - k * dy;
             datum.y2 = y3 + k * dx;
-
-            datum.scale = Math.sqrt(Math.pow(datum.x2-x1,2) + Math.pow(datum.y2-y1,2))/Math.sqrt(dx*dx + dy*dy);
+            datum.scale = Math.sqrt(
+                Math.pow(datum.x2-x1,2) + Math.pow(datum.y2-y1,2)
+            )/ Math.sqrt(dx*dx + dy*dy);
             upd(line);
         }
 
     };
 
     function del(d, key) {
+        if(!d[key])
+            return;
         d[key].remove();
         d[key] = null;
     }
