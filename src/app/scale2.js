@@ -21,6 +21,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
                 var transformed = svgpath(d.path)
 
+
                     .translate(-d.boxX, -d.boxY)
                     .scale(
                         d.lineX ? d.lineX.datum().scale : 1,

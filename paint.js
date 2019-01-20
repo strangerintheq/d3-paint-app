@@ -1914,6 +1914,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
                 var transformed = svgpath(d.path)
 
+
                     .translate(-d.boxX, -d.boxY)
                     .scale(
                         d.lineX ? d.lineX.datum().scale : 1,
@@ -1923,7 +1924,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                     .round(1);
 
                 ctx.active.node().firstChild.setAttribute('d', transformed.toString());
-              //  ctx.active.attr('transform', svg.getTransform);
+                ctx.active.attr('transform', svg.getTransform);
                 ctx.extent.updateExtent();
             })
             .on("end", function (d) {

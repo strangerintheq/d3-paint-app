@@ -10,21 +10,19 @@ function broker() {
 
     return {
         events: events,
+        fire: fire,
+        on: on
+    };
 
-        fire: function (evt, arg) {
+    function on(evt, func) {
+        !listeners[evt] && (listeners[evt] = []);
+        listeners[evt].push(func);
+    }
 
-            console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
-
-            listeners[evt] && listeners[evt].forEach(invoke);
-
-            function invoke(listener) {
-                listener(arg);
-            }
-        },
-
-        on: function (evt, func) {
-            !listeners[evt] && (listeners[evt] = []);
-            listeners[evt].push(func);
-        }
+    function fire(evt, arg) {
+        console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
+        listeners[evt] && listeners[evt].forEach(function (listener) {
+            listener(arg);
+        });
     }
 }
