@@ -59,11 +59,13 @@ module.exports = {
 
     getTransform: function (d) {
         var r = ctx.active.node().getBBox();
+        var dx = d.x - (d.dx || 0);
+        var dy = d.y - (d.dy || 0);
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
         return ''
-            + 'rotate(' + d.r + ',' + (x + d.x) + ',' + (y + d.y) + ')'
-            + 'translate(' + d.x + ',' + d.y + ')'
+            + 'rotate(' + d.r + ',' + (x + dx) + ',' + (y + dy) + ')'
+            + 'translate(' + dx + ',' + dy + ')'
 
 
     },

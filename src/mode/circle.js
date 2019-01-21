@@ -21,13 +21,6 @@ function dragStart(group, mouse) {
 
 function dragMove(mouse) {
     active
-        // .attr('cx', function (d) {return d.x;})
-        // .attr('cy', function (d) {return d.y;})
-        // .attr('r', function (d) {
-        //     var x = mouse.x - d.x;
-        //     var y = mouse.y - d.y;
-        //     return Math.sqrt(x*x + y*y);
-        // })
         .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
@@ -37,5 +30,33 @@ function dragMove(mouse) {
 
 
 function getPath(cx,cy,r){
-    return "M" + cx + "," + cy + "m" + (-r) + ",0a" + r + "," + r + " 0 1,0 " + (r * 2) + ",0a" + r + "," + r + " 0 1,0 " + (-r * 2) + ",0";
+    var res = "";
+    var a = 4;
+    for (var i = 0; i<360/a; i++)
+        res += describeArc(cx,cy, r, 360-i*a,360-(i*a+a));
+    return res
+}
+
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+    var angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+
+    return {
+        x: centerX + (radius * Math.cos(angleInRadians)),
+        y: centerY + (radius * Math.sin(angleInRadians))
+    };
+}
+
+function describeArc(x, y, radius, startAngle, endAngle){
+
+    var start = polarToCartesian(x, y, radius, endAngle);
+    var end = polarToCartesian(x, y, radius, startAngle);
+
+    var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+    var d = [
+        "M", start.x, start.y,
+        "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+    ].join(" ");
+
+    return d + ' ';
 }

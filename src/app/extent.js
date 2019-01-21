@@ -4,7 +4,7 @@ module.exports = extent;
 
 var svg = require('./svg');
 var rotate = require('./rotate');
-var scale = require('./scale2');
+var scale = require('./scale');
 
 function extent(ctx) {
 
