@@ -1512,22 +1512,20 @@ function broker() {
 
     return {
         events: events,
+        fire: fire,
+        on: on
+    };
 
-        fire: function (evt, arg) {
+    function on(evt, func) {
+        !listeners[evt] && (listeners[evt] = []);
+        listeners[evt].push(func);
+    }
 
-            console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
-
-            listeners[evt] && listeners[evt].forEach(invoke);
-
-            function invoke(listener) {
-                listener(arg);
-            }
-        },
-
-        on: function (evt, func) {
-            !listeners[evt] && (listeners[evt] = []);
-            listeners[evt].push(func);
-        }
+    function fire(evt, arg) {
+        console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
+        listeners[evt] && listeners[evt].forEach(function (listener) {
+            listener(arg);
+        });
     }
 }
 
@@ -1904,23 +1902,28 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 if (vys && vye)
                     d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
+
                 var box = ctx.active.node().firstChild.getBBox();
-                d.boxX = box.x + dw * box.width;
-                d.boxY = box.y + dh * box.height;
+                var x = box.x + dw * box.width;
+                var y = box.y + dh * box.height;
+
+              //  var r = ctx.active.node().getBoundingClientRect();
+              //  var cx = r.x + r.width / 2 - svg.screenOffsetX(ctx);
+              //  var cy = r.y + r.height / 2 - svg.screenOffsetY(ctx);
+
+                d.origin = {x: x, y: y};//rotate(cx, cy, x,y, ctx.active.datum().r)
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
 
                 var transformed = svgpath(d.path)
-
-
-                    .translate(-d.boxX, -d.boxY)
+                    .translate(-d.origin.x, -d.origin.y)
                     .scale(
                         d.lineX ? d.lineX.datum().scale : 1,
                         d.lineY ? d.lineY.datum().scale : 1
                     )
-                    .translate( d.boxX, d.boxY)
+                    .translate(d.origin.x, d.origin.y)
                     .round(1);
 
                 ctx.active.node().firstChild.setAttribute('d', transformed.toString());
@@ -1941,21 +1944,22 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             var x1 = datum.sx, y1 = datum.sy;
             var x2 = datum.ex, y2 = datum.ey;
             var x3 = d3.event.x, y3 = d3.event.y;
-            var dx = x2-x1, dy = y2-y1;
-            var k = (dy * (x3-x1) - dx * (y3-y1)) / (dy*dy + dx*dx);
-            datum.x1 = x3; datum.y1 = y3;
+            var dx = x2 - x1, dy = y2 - y1;
+            var k = (dy * (x3 - x1) - dx * (y3 - y1)) / (dy * dy + dx * dx);
+            datum.x1 = x3;
+            datum.y1 = y3;
             datum.x2 = x3 - k * dy;
             datum.y2 = y3 + k * dx;
             datum.scale = Math.sqrt(
-                Math.pow(datum.x2-x1,2) + Math.pow(datum.y2-y1,2)
-            )/ Math.sqrt(dx*dx + dy*dy);
+                Math.pow(datum.x2 - x1, 2) + Math.pow(datum.y2 - y1, 2)
+            ) / Math.sqrt(dx * dx + dy * dy);
             upd(line);
         }
 
     };
 
     function del(d, key) {
-        if(!d[key])
+        if (!d[key])
             return;
         d[key].remove();
         d[key] = null;
@@ -1985,6 +1989,15 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             })
             .attr('stroke-width', 1.8)
             .attr('stroke', 'red')
+    }
+
+    function rotate(cx, cy, x, y, angle) {
+        var radians = (Math.PI / 180) * angle;
+        var cos = Math.cos(radians);
+        var sin = Math.sin(radians);
+        var nx = (cos * (x - cx)) + (sin * (y - cy)) + cx;
+        var ny = (cos * (y - cy)) - (sin * (x - cx)) + cy;
+        return {x: nx, y: ny};
     }
 };
 },{"./svg":17,"svgpath":1}],17:[function(require,module,exports){
