@@ -11,17 +11,23 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 if (vys && vye)
                     d.lineY = line(knob, vys, vye);
                 d.path = ctx.active.node().firstChild.getAttribute('d');
+
                 var box = ctx.active.node().firstChild.getBBox();
                 d.boxX = box.x + dw * box.width;
                 d.boxY = box.y + dh * box.height;
+
+                var r = ctx.active.node().getBoundingClientRect();
+                d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
+                d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
+
+
+
             })
             .on("drag", function (d) {
                 calc(d.lineX);
                 calc(d.lineY);
 
                 var transformed = svgpath(d.path)
-
-
                     .translate(-d.boxX, -d.boxY)
                     .scale(
                         d.lineX ? d.lineX.datum().scale : 1,
