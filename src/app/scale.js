@@ -51,6 +51,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
             datum.dx /= ctx.transform.k;
             datum.dy /= ctx.transform.k;
+
             ctx.active.attr('transform', svg.getTransform);
             ctx.extent.updateExtent();
 
@@ -84,7 +85,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
         function endScale(d){
             svg.fill(knob, 'transparent', 150);
-            ['lineX', 'lineY', 'helperPath', 'scaleHelper'].forEach(function (key) {
+            ['lineX', 'lineY', 'scaleHelper'].forEach(function (key) {
                 if (!d[key])
                     return;
                 d[key].remove();
@@ -111,6 +112,10 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             datum.scale = Math.sqrt(
                 Math.pow(datum.x2 - x1, 2) + Math.pow(datum.y2 - y1, 2)
             ) / Math.sqrt(dx * dx + dy * dy);
+
+            var a = Math.atan2(datum.y2 - y1, datum.x2 - x1) - Math.atan2(dy, dx);
+            a /= Math.PI;
+            datum. scale *= Math.sign(0.5 - Math.abs(a));
         }
     };
 

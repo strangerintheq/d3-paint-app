@@ -29,11 +29,19 @@ function dragMove(mouse) {
 }
 
 
-function getPath(cx,cy,r){
+function getPath(x,y,radius) {
     var res = "";
-    var a = 4;
-    for (var i = 0; i<360/a; i++)
-        res += describeArc(cx,cy, r, 360-i*a,360-(i*a+a));
+    var a = 45;
+    for (var i = 0; i<360/a; i++) {
+        var startAngle =  a * i;
+        var endAngle = startAngle + a;
+        var start = polarToCartesian(x, y, radius, startAngle);
+        var end = polarToCartesian(x, y, radius, endAngle);
+        var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+        if (!res)
+            res +=[" M", start.x, start.y].join(" ");
+        res += [" A", radius, radius, 0, largeArcFlag, 1, end.x, end.y].join(" ");
+    }
     return res
 }
 

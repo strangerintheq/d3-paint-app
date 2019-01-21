@@ -1930,7 +1930,6 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             var knobRect = d.scaleHelper.node().getBoundingClientRect();
             datum.dx = knobRect.x + knobRect.width/2 - svg.screenOffsetX();
             datum.dy = knobRect.y + knobRect.height/2 - svg.screenOffsetY();
-            
 
             if (d.lineX && d.lineY) {
                 datum.dx -= d3.event.x;
@@ -1976,7 +1975,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
         function endScale(d){
             svg.fill(knob, 'transparent', 150);
-            ['lineX', 'lineY', 'helperPath', 'scaleHelper'].forEach(function (key) {
+            ['lineX', 'lineY', 'scaleHelper'].forEach(function (key) {
                 if (!d[key])
                     return;
                 d[key].remove();
@@ -2004,21 +2003,11 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 Math.pow(datum.x2 - x1, 2) + Math.pow(datum.y2 - y1, 2)
             ) / Math.sqrt(dx * dx + dy * dy);
 
-           // upd(line);
+            var a = Math.atan2(datum.y2 - y1, datum.x2 - x1) - Math.atan2(dy, dx);
+            a /= Math.PI;
+            datum. scale *= Math.sign(0.5 - Math.abs(a));
         }
     };
-
-    function upd(line) {
-        line.attr('x1', function (d) {
-            return d.x1
-        }).attr('y1', function (d) {
-            return d.y1
-        }).attr('x2', function (d) {
-            return d.x2
-        }).attr('y2', function (d) {
-            return d.y2
-        })
-    }
 
     function line(knob, vs, ve) {
         vs = d3.select('circle.knob.' + vs);
@@ -2306,11 +2295,19 @@ function dragMove(mouse) {
 }
 
 
-function getPath(cx,cy,r){
+function getPath(x,y,radius) {
     var res = "";
-    var a = 4;
-    for (var i = 0; i<360/a; i++)
-        res += describeArc(cx,cy, r, 360-i*a,360-(i*a+a));
+    var a = 45;
+    for (var i = 0; i<360/a; i++) {
+        var startAngle =  a * i;
+        var endAngle = startAngle + a;
+        var start = polarToCartesian(x, y, radius, startAngle);
+        var end = polarToCartesian(x, y, radius, endAngle);
+        var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+        if (!res)
+            res +=[" M", start.x, start.y].join(" ");
+        res += [" A", radius, radius, 0, largeArcFlag, 1, end.x, end.y].join(" ");
+    }
     return res
 }
 
