@@ -1679,14 +1679,14 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0, scale(ctx, 'se', 'sw', 'se', 'ne',1,1)],
-        ['w', 0, 1, scale(ctx, 'e', 'w', null,null, 1, 0.5)],
-        ['sw', 0, 1, scale(ctx, 'ne', 'nw', 'ne', 'se',1,0)],
-        ['s', 1, 0, scale(ctx, null, null, 'n', 's', 0.5, 0)],
-        ['se', 1, 0, scale(ctx, 'nw','ne','nw', 'sw',0,0)],
-        ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5)],
-        ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1)],
-        ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1)],
+        ['nw', 0, 0, scale(ctx, 'se', 'sw', 'se', 'ne',1,1, 'ne', 'se', 'sw')],
+        ['w', 0, 1, scale(ctx, 'e', 'w', null,null, 1, 0.5, 'e', null, null)],
+        ['sw', 0, 1, scale(ctx, 'ne', 'nw', 'ne', 'se',1,0, 'se', 'ne', 'nw')],
+        ['s', 1, 0, scale(ctx, null, null, 'n', 's', 0.5, 0, null, null, 'n')],
+        ['se', 1, 0, scale(ctx, 'nw','ne','nw', 'sw',0,0, 'sw', 'nw', 'ne')],
+        ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5,'w', null, null)],
+        ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1, 'nw', 'sw', 'se')],
+        ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1,null, null, 's')],
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
@@ -1893,7 +1893,7 @@ var svgpath = require('svgpath');
 var svg = require('./svg');
 
 
-module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
+module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
     return function (knob) {
         return d3.drag()
@@ -1923,9 +1923,19 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             ctx.active.attr('transform', svg.getTransform);
             ctx.extent.updateExtent();
 
+            var k = knob;
+            var needDx = d.lineX && d.lineX.datum().scale < 0;
+            var needDy = d.lineY && d.lineY.datum().scale < 0;
+            if (needDx && needDy)
+                k = d3.select('circle.knob.'+xy);
+            else if (needDx)
+                k = d3.select('circle.knob.'+x);
+            else if (needDy)
+                k = d3.select('circle.knob.'+y);
+
             d.scaleHelper
-                .attr('cx', knob.datum().x)
-                .attr('cy', knob.datum().y);
+                .attr('cx', k.datum().x)
+                .attr('cy', k.datum().y);
 
             var knobRect = d.scaleHelper.node().getBoundingClientRect();
             datum.dx = knobRect.x + knobRect.width/2 - svg.screenOffsetX();
@@ -1942,6 +1952,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
             datum.dx /= ctx.transform.k;
             datum.dy /= ctx.transform.k;
+
             ctx.active.attr('transform', svg.getTransform);
             ctx.extent.updateExtent();
 
@@ -2006,6 +2017,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             var a = Math.atan2(datum.y2 - y1, datum.x2 - x1) - Math.atan2(dy, dx);
             a /= Math.PI;
             datum. scale *= Math.sign(0.5 - Math.abs(a));
+
+            console.log(datum.scale)
         }
     };
 

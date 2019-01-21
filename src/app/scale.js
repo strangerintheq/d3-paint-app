@@ -2,7 +2,7 @@ var svgpath = require('svgpath');
 var svg = require('./svg');
 
 
-module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
+module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
     return function (knob) {
         return d3.drag()
@@ -32,9 +32,19 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             ctx.active.attr('transform', svg.getTransform);
             ctx.extent.updateExtent();
 
+            var k = knob;
+            var needDx = d.lineX && d.lineX.datum().scale < 0;
+            var needDy = d.lineY && d.lineY.datum().scale < 0;
+            if (needDx && needDy)
+                k = d3.select('circle.knob.'+xy);
+            else if (needDx)
+                k = d3.select('circle.knob.'+x);
+            else if (needDy)
+                k = d3.select('circle.knob.'+y);
+
             d.scaleHelper
-                .attr('cx', knob.datum().x)
-                .attr('cy', knob.datum().y);
+                .attr('cx', k.datum().x)
+                .attr('cy', k.datum().y);
 
             var knobRect = d.scaleHelper.node().getBoundingClientRect();
             datum.dx = knobRect.x + knobRect.width/2 - svg.screenOffsetX();
@@ -116,6 +126,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             var a = Math.atan2(datum.y2 - y1, datum.x2 - x1) - Math.atan2(dy, dx);
             a /= Math.PI;
             datum. scale *= Math.sign(0.5 - Math.abs(a));
+
+            console.log(datum.scale)
         }
     };
 

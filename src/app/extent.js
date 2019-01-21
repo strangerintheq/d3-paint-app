@@ -19,14 +19,14 @@ function extent(ctx) {
         .attr('pointer-events', 'none');
 
     var placementKeys = [
-        ['nw', 0, 0, scale(ctx, 'se', 'sw', 'se', 'ne',1,1)],
-        ['w', 0, 1, scale(ctx, 'e', 'w', null,null, 1, 0.5)],
-        ['sw', 0, 1, scale(ctx, 'ne', 'nw', 'ne', 'se',1,0)],
-        ['s', 1, 0, scale(ctx, null, null, 'n', 's', 0.5, 0)],
-        ['se', 1, 0, scale(ctx, 'nw','ne','nw', 'sw',0,0)],
-        ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5)],
-        ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1)],
-        ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1)],
+        ['nw', 0, 0, scale(ctx, 'se', 'sw', 'se', 'ne',1,1, 'ne', 'se', 'sw')],
+        ['w', 0, 1, scale(ctx, 'e', 'w', null,null, 1, 0.5, 'e', null, null)],
+        ['sw', 0, 1, scale(ctx, 'ne', 'nw', 'ne', 'se',1,0, 'se', 'ne', 'nw')],
+        ['s', 1, 0, scale(ctx, null, null, 'n', 's', 0.5, 0, null, null, 'n')],
+        ['se', 1, 0, scale(ctx, 'nw','ne','nw', 'sw',0,0, 'sw', 'nw', 'ne')],
+        ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5,'w', null, null)],
+        ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1, 'nw', 'sw', 'se')],
+        ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1,null, null, 's')],
         ['r', 0, -15, rotate(ctx, center)]
     ];
 
