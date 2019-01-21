@@ -111,22 +111,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             datum.scale = Math.sqrt(
                 Math.pow(datum.x2 - x1, 2) + Math.pow(datum.y2 - y1, 2)
             ) / Math.sqrt(dx * dx + dy * dy);
-
-           // upd(line);
         }
     };
-
-    function upd(line) {
-        line.attr('x1', function (d) {
-            return d.x1
-        }).attr('y1', function (d) {
-            return d.y1
-        }).attr('x2', function (d) {
-            return d.x2
-        }).attr('y2', function (d) {
-            return d.y2
-        })
-    }
 
     function line(knob, vs, ve) {
         vs = d3.select('circle.knob.' + vs);
