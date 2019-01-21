@@ -40,19 +40,13 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
             datum.dx = knobRect.x + knobRect.width/2 - svg.screenOffsetX();
             datum.dy = knobRect.y + knobRect.height/2 - svg.screenOffsetY();
 
-            d.helperPath
-                .attr('x1', datum.dx)
-                .attr('y1', datum.dx)
-                .attr('x2', d3.event.x)
-                .attr('y2', d3.event.y);
-
             if (d.lineX && d.lineY) {
                 datum.dx -= d3.event.x;
                 datum.dy -= d3.event.y;
             } else {
                 var l = d.lineX || d.lineY;
-                datum.dx -= +l.attr('x2');
-                datum.dy -= +l.attr('y2');
+                datum.dx -= +l.datum().x2;
+                datum.dy -= +l.datum().y2;
             }
 
             datum.dx /= ctx.transform.k;
@@ -80,13 +74,9 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
 
             d.origin = {x: x, y: y};
 
-            d.helperPath = ctx.svg.append('line')
-                .attr('stroke-width', 1.8)
-                .attr('stroke', 'red');
-
             d.scaleHelper = ctx.svg.append('circle')
                 .attr('r', 3)
-                .attr('stroke', 'red')
+                .attr('stroke', 'none')
                 .attr('cx', knob.datum().x)
                 .attr('cy', knob.datum().y)
                 .attr('fill', 'none');
@@ -122,7 +112,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh) {
                 Math.pow(datum.x2 - x1, 2) + Math.pow(datum.y2 - y1, 2)
             ) / Math.sqrt(dx * dx + dy * dy);
 
-            upd(line);
+           // upd(line);
         }
     };
 
