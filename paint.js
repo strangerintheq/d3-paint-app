@@ -1996,29 +1996,30 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
             d.path = null;
         }
 
+
+        function len(x,y) {
+            return Math.sqrt(x * x + y * y)
+        }
+
+        function dot(x1, y1, x2, y2) {
+            return x1 * x2 + y1 * y2;
+        }
+
         function calc(line) {
             if (!line)
                 return;
+
             var datum = line.datum();
             var x1 = datum.sx, y1 = datum.sy;
             var x2 = datum.ex, y2 = datum.ey;
             var x3 = d3.event.x, y3 = d3.event.y;
             var dx = x2 - x1, dy = y2 - y1;
             var k = (dy * (x3 - x1) - dx * (y3 - y1)) / (dy * dy + dx * dx);
-            datum.x1 = x3;
-            datum.y1 = y3;
-            datum.x2 = x3 - k * dy;
-            datum.y2 = y3 + k * dx;
-
-            datum.scale = Math.sqrt(
-                Math.pow(datum.x2 - x1, 2) + Math.pow(datum.y2 - y1, 2)
-            ) / Math.sqrt(dx * dx + dy * dy);
-
-            var a = Math.atan2(datum.y2 - y1, datum.x2 - x1) - Math.atan2(dy, dx);
-            a /= Math.PI;
-            datum. scale *= Math.sign(0.5 - Math.abs(a));
-
-            console.log(datum.scale)
+            datum.x1 = x3; datum.y1 = y3;
+            datum.x2 = x3 - k * dy; datum.y2 = y3 + k * dx;
+            var x4 = datum.x2 - x1, y4 = datum.y2 - y1;
+            datum.scale = len(x4, y4) / len(dx, dy);
+            datum.scale *= Math.sign(dot(x4, y4, dx, dy));
         }
     };
 
