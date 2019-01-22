@@ -21,10 +21,9 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
                     d.lineY ? d.lineY.datum().scale : 1
                 )
                 .translate(d.origin.x, d.origin.y)
-                .round(1);
+                .round(4);
 
-            ctx.active.node().firstChild.setAttribute('d', transformed.toString());
-
+            ctx.active.select('path.figure').attr('d', transformed.toString());
 
             var datum = ctx.active.datum();
             datum.dx = 0;
@@ -36,11 +35,14 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
             var needDx = d.lineX && d.lineX.datum().scale < 0;
             var needDy = d.lineY && d.lineY.datum().scale < 0;
             if (needDx && needDy)
-                k = d3.select('circle.knob.'+xy);
+                k = d3.select('circle.knob.' + xy);
             else if (needDx)
-                k = d3.select('circle.knob.'+x);
+                k = d3.select('circle.knob.' + x);
             else if (needDy)
-                k = d3.select('circle.knob.'+y);
+                k = d3.select('circle.knob.' + y);
+
+            svg.fill(d3.selectAll('circle.knob'), false);
+            svg.fill(k, true);
 
             d.scaleHelper
                 .attr('cx', k.datum().x)
@@ -68,8 +70,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
         }
 
         function startScale(d) {
-
-            svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
+            svg.fill(knob, true, 150);
 
             if (vxs && vxe)
                 d.lineX = line(knob, vxs, vxe);
@@ -77,9 +78,10 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
             if (vys && vye)
                 d.lineY = line(knob, vys, vye);
 
-            d.path = ctx.active.node().firstChild.getAttribute('d');
+            var figure = ctx.active.select('path.figure');
+            d.path = figure.attr('d');
 
-            var box = ctx.active.node().firstChild.getBBox();
+            var box = figure.node().getBBox();
             var x = box.x + dw * box.width;
             var y = box.y + dh * box.height;
 
@@ -94,7 +96,9 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
         }
 
         function endScale(d){
-            svg.fill(knob, 'transparent', 150);
+
+            svg.fill(d3.selectAll('circle.knob'), false, 150);
+
             ['lineX', 'lineY', 'scaleHelper'].forEach(function (key) {
                 if (!d[key])
                     return;

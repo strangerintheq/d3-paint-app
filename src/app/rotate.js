@@ -9,7 +9,7 @@ function rotate(ctx, center) {
         var action;
         return d3.drag()
             .on("start", function (d) {
-                svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
+                svg.fill(knob, true, 150);
                 var r = ctx.active.node().getBoundingClientRect();
                 d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
                 d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
@@ -29,7 +29,7 @@ function rotate(ctx, center) {
                 doRotate(ctx.active, a);
             })
             .on("end", function (d) {
-                svg.fill(knob, 'transparent', 150);
+                svg.fill(knob, false, 150);
                 center.attr('display', 'none');
                 action.endRotate();
                 ctx.broker.fire(ctx.broker.events.ACTION, action);

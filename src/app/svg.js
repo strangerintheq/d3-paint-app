@@ -63,11 +63,8 @@ module.exports = {
         var dy = d.y - (d.dy || 0);
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return ''
-            + 'rotate(' + d.r + ',' + (x + dx) + ',' + (y + dy) + ')'
-            + 'translate(' + dx + ',' + dy + ')'
-
-
+        return 'rotate(' + d.r + ',' + (x + dx) + ',' + (y + dy) + ')'
+            +  'translate(' + dx + ',' + dy + ')'
     },
 
     screenOffsetX: function () {
@@ -87,6 +84,27 @@ module.exports = {
     fill: function (el, col, t) {
         el.transition()
             .duration(t||0)
-            .style('fill', col)
+            .style('fill', col ? 'rgba(0, 40, 255, 0.7)' : 'transparent')
+    },
+
+    circlePath: function (x, y, r, a) {
+        var res = "";
+        a = a || 45;
+        for (var i = 0; i < 360/a; i++) {
+            var s = polarToCartesian(x, y, r, a * i);
+            var e = polarToCartesian(x, y, r, a * i + a);
+            if (!res)
+                res += ["M", s.x, s.y].join(" ");
+            res += [" A", r, r, 0, 0, 1, e.x, e.y].join(" ");
+        }
+        return res + 'Z';
     }
 };
+
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+    var angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+    return {
+        x: centerX + (radius * Math.cos(angleInRadians)),
+        y: centerY + (radius * Math.sin(angleInRadians))
+    };
+}

@@ -1594,7 +1594,6 @@ function canvas(ctx) {
     function drawStart() {
         var group = canvas
             .append('g')
-            .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});
 
         action = createDrawAction(ctx.active);
@@ -1612,10 +1611,12 @@ function canvas(ctx) {
     }
 
     function drawEnd() {
+
         ctx.extent.updateExtent(ctx);
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
-            .call(createTranslate(ctx));
+            .call(createTranslate(ctx))
+            .style('cursor', 'move');
 
         action.endDraw();
         ctx.broker.fire(ctx.broker.events.ACTION, action);
@@ -1672,6 +1673,7 @@ function extent(ctx) {
 
     var path = extent.append('path')
         .call(style)
+        .attr("clip-path", "url(#clip-knobs)")
         .attr('pointer-events', 'none');
 
     var center = extent.append('circle')
@@ -1687,14 +1689,17 @@ function extent(ctx) {
         ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5,'w', null, null)],
         ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1, 'nw', 'sw', 'se')],
         ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1,null, null, 's')],
-        ['r', 0, -15, rotate(ctx, center)]
+        ['r', 0, -25, rotate(ctx, center)]
     ];
+
+    var clipPath = ctx.defs.append("clipPath")
+        .attr("id", "clip-knobs")
+        .append("path");
 
     var knobs = extent.selectAll('circle.knob')
         .data(placementKeys)
         .enter()
         .append('circle')
-        .classed('knob', true)
         .call(circle)
         .attr('cursor', 'pointer')
         .each(function (d) {
@@ -1703,22 +1708,33 @@ function extent(ctx) {
             d[3] && knob.call(d[3](knob));
         });
 
+    var outline = ctx.svg.select('.helpers')
+        .append('path')
+        .classed('outline', true)
+        .attr('stroke', 'rgba(0, 40, 255, 0.3)')
+        .attr('stroke-width', 6)
+        //.attr('stroke-linecap', 'square')
+        .attr('fill', 'transparent')
+        .attr('pointer-events', 'none');
+
     return {
         updateExtent: render
     };
 
     function render() {
         var a = ctx.active;
+
         if (!a) {
             path.attr('d', '');
             knobs.attr('display', 'none');
+            outline.attr('d', '');
             return;
         }
 
         var thick = a.attr('stroke-width') ||
             d3.select(a.node().firstChild).attr('stroke-width');
 
-        var pad = 2 + thick / 2 / ctx.transform.k;
+        var pad = 0;//2 + thick / 2 / ctx.transform.k;
         var calc = svg.createPointCalc(a, pad);
 
         var pts = placementKeys.map(function (p) {
@@ -1729,9 +1745,10 @@ function extent(ctx) {
         var ox = svg.screenOffsetX(ctx);
         var oy = svg.screenOffsetY(ctx);
         var d = "";
+        var clipD = "M-2000,-2000L-2000,2000L2000,2000L2000,-2000Z";
         pts.forEach(function (p, i) {
 
-            d3.select('circle.' + placementKeys[i][0])
+            d3.selectAll('circle.' + placementKeys[i][0])
                 .attr('display', 'visible')
                 .attr('cx', p.pad.x - ox)
                 .attr('cy', p.pad.y - oy)
@@ -1746,8 +1763,14 @@ function extent(ctx) {
                 d += (p.pad.y - oy) + " ";
             }
 
+            clipD += svg.circlePath(p.pad.x - ox, p.pad.y - oy, 5)
+
         });
+        clipPath.attr('d', clipD);
         path.attr('d', d + "Z");
+        outline.attr('d', a.attr('d') || d3.select(a.node().firstChild).attr('d'))
+            .attr('stroke-width', (5/ctx.transform.k) +(+thick))
+            .attr('transform', a.attr('transform') || d3.select(a.node().parentNode).attr('transform'));
     }
 
     function circle(el) {
@@ -1793,7 +1816,7 @@ function panzoom(ctx) {
     function applyTransform() {
         ctx.canvas.applyTransform()
         ctx.axes.applyZoom(ctx.transform);
-        ctx.active && ctx.extent.updateExtent(ctx);
+        ctx.extent.updateExtent();
         ctx.broker.fire(ctx.broker.events.TRANSFORM, ctx.transform)
     }
 
@@ -1833,7 +1856,7 @@ function rotate(ctx, center) {
         var action;
         return d3.drag()
             .on("start", function (d) {
-                svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
+                svg.fill(knob, true, 150);
                 var r = ctx.active.node().getBoundingClientRect();
                 d.cx = r.x + r.width/2 - svg.screenOffsetX(ctx);
                 d.cy = r.y + r.height/2 - svg.screenOffsetY(ctx);
@@ -1853,7 +1876,7 @@ function rotate(ctx, center) {
                 doRotate(ctx.active, a);
             })
             .on("end", function (d) {
-                svg.fill(knob, 'transparent', 150);
+                svg.fill(knob, false, 150);
                 center.attr('display', 'none');
                 action.endRotate();
                 ctx.broker.fire(ctx.broker.events.ACTION, action);
@@ -1912,10 +1935,9 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
                     d.lineY ? d.lineY.datum().scale : 1
                 )
                 .translate(d.origin.x, d.origin.y)
-                .round(1);
+                .round(4);
 
-            ctx.active.node().firstChild.setAttribute('d', transformed.toString());
-
+            ctx.active.select('path.figure').attr('d', transformed.toString());
 
             var datum = ctx.active.datum();
             datum.dx = 0;
@@ -1927,11 +1949,14 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
             var needDx = d.lineX && d.lineX.datum().scale < 0;
             var needDy = d.lineY && d.lineY.datum().scale < 0;
             if (needDx && needDy)
-                k = d3.select('circle.knob.'+xy);
+                k = d3.select('circle.knob.' + xy);
             else if (needDx)
-                k = d3.select('circle.knob.'+x);
+                k = d3.select('circle.knob.' + x);
             else if (needDy)
-                k = d3.select('circle.knob.'+y);
+                k = d3.select('circle.knob.' + y);
+
+            svg.fill(d3.selectAll('circle.knob'), false);
+            svg.fill(k, true);
 
             d.scaleHelper
                 .attr('cx', k.datum().x)
@@ -1959,8 +1984,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
         }
 
         function startScale(d) {
-
-            svg.fill(knob, 'rgba(0, 40, 255, 0.5)', 150);
+            svg.fill(knob, true, 150);
 
             if (vxs && vxe)
                 d.lineX = line(knob, vxs, vxe);
@@ -1968,9 +1992,10 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
             if (vys && vye)
                 d.lineY = line(knob, vys, vye);
 
-            d.path = ctx.active.node().firstChild.getAttribute('d');
+            var figure = ctx.active.select('path.figure');
+            d.path = figure.attr('d');
 
-            var box = ctx.active.node().firstChild.getBBox();
+            var box = figure.node().getBBox();
             var x = box.x + dw * box.width;
             var y = box.y + dh * box.height;
 
@@ -1985,7 +2010,9 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
         }
 
         function endScale(d){
-            svg.fill(knob, 'transparent', 150);
+
+            svg.fill(d3.selectAll('circle.knob'), false, 150);
+
             ['lineX', 'lineY', 'scaleHelper'].forEach(function (key) {
                 if (!d[key])
                     return;
@@ -2103,11 +2130,8 @@ module.exports = {
         var dy = d.y - (d.dy || 0);
         var x = r.x + r.width / 2;
         var y = r.y + r.height / 2;
-        return ''
-            + 'rotate(' + d.r + ',' + (x + dx) + ',' + (y + dy) + ')'
-            + 'translate(' + dx + ',' + dy + ')'
-
-
+        return 'rotate(' + d.r + ',' + (x + dx) + ',' + (y + dy) + ')'
+            +  'translate(' + dx + ',' + dy + ')'
     },
 
     screenOffsetX: function () {
@@ -2127,9 +2151,30 @@ module.exports = {
     fill: function (el, col, t) {
         el.transition()
             .duration(t||0)
-            .style('fill', col)
+            .style('fill', col ? 'rgba(0, 40, 255, 0.7)' : 'transparent')
+    },
+
+    circlePath: function (x, y, r, a) {
+        var res = "";
+        a = a || 45;
+        for (var i = 0; i < 360/a; i++) {
+            var s = polarToCartesian(x, y, r, a * i);
+            var e = polarToCartesian(x, y, r, a * i + a);
+            if (!res)
+                res += ["M", s.x, s.y].join(" ");
+            res += [" A", r, r, 0, 0, 1, e.x, e.y].join(" ");
+        }
+        return res + 'Z';
     }
 };
+
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+    var angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+    return {
+        x: centerX + (radius * Math.cos(angleInRadians)),
+        y: centerY + (radius * Math.sin(angleInRadians))
+    };
+}
 
 },{}],18:[function(require,module,exports){
 var svg = require('./svg');
@@ -2163,6 +2208,7 @@ module.exports = function (ctx) {
     function activate(g) {
         action = createTranslateAction(ctx.active.datum());
         ctx.active = g;
+        ctx.active.raise();
     }
 
     function createTranslateAction(d) {
@@ -2255,6 +2301,7 @@ window.d3Paint = function (elementOrSelector) {
 
     ctx.containerElement = d3.select(elementOrSelector);
     ctx.svg = ctx.containerElement.append('svg');
+    ctx.defs = ctx.svg.append('defs');
     ctx.transform = d3.zoomTransform(ctx.svg);
 
     svg.setContext(ctx);
@@ -2279,6 +2326,7 @@ window.d3Paint = function (elementOrSelector) {
 
 },{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/extent":12,"./app/modes":13,"./app/panzoom":14,"./app/svg":17,"./app/undoredo":19}],21:[function(require,module,exports){
 // mode/circle.js
+var svg = require('../app/svg');
 
 var active;
 
@@ -2304,51 +2352,11 @@ function dragMove(mouse) {
         .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
-            return getPath(d.x, d.y, Math.sqrt(x*x + y*y))
+            return svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)
         })
 }
 
-
-function getPath(x,y,radius) {
-    var res = "";
-    var a = 45;
-    for (var i = 0; i<360/a; i++) {
-        var startAngle =  a * i;
-        var endAngle = startAngle + a;
-        var start = polarToCartesian(x, y, radius, startAngle);
-        var end = polarToCartesian(x, y, radius, endAngle);
-        var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-        if (!res)
-            res +=[" M", start.x, start.y].join(" ");
-        res += [" A", radius, radius, 0, largeArcFlag, 1, end.x, end.y].join(" ");
-    }
-    return res
-}
-
-function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
-    var angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
-
-    return {
-        x: centerX + (radius * Math.cos(angleInRadians)),
-        y: centerY + (radius * Math.sin(angleInRadians))
-    };
-}
-
-function describeArc(x, y, radius, startAngle, endAngle){
-
-    var start = polarToCartesian(x, y, radius, endAngle);
-    var end = polarToCartesian(x, y, radius, startAngle);
-
-    var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-    var d = [
-        "M", start.x, start.y,
-        "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
-    ].join(" ");
-
-    return d + ' ';
-}
-},{}],22:[function(require,module,exports){
+},{"../app/svg":17}],22:[function(require,module,exports){
 // mode/line.js
 
 var active;

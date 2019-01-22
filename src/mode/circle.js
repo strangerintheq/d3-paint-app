@@ -1,4 +1,5 @@
 // mode/circle.js
+var svg = require('../app/svg');
 
 var active;
 
@@ -24,47 +25,6 @@ function dragMove(mouse) {
         .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
-            return getPath(d.x, d.y, Math.sqrt(x*x + y*y))
+            return svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)
         })
-}
-
-
-function getPath(x,y,radius) {
-    var res = "";
-    var a = 45;
-    for (var i = 0; i<360/a; i++) {
-        var startAngle =  a * i;
-        var endAngle = startAngle + a;
-        var start = polarToCartesian(x, y, radius, startAngle);
-        var end = polarToCartesian(x, y, radius, endAngle);
-        var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-        if (!res)
-            res +=[" M", start.x, start.y].join(" ");
-        res += [" A", radius, radius, 0, largeArcFlag, 1, end.x, end.y].join(" ");
-    }
-    return res
-}
-
-function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
-    var angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
-
-    return {
-        x: centerX + (radius * Math.cos(angleInRadians)),
-        y: centerY + (radius * Math.sin(angleInRadians))
-    };
-}
-
-function describeArc(x, y, radius, startAngle, endAngle){
-
-    var start = polarToCartesian(x, y, radius, endAngle);
-    var end = polarToCartesian(x, y, radius, startAngle);
-
-    var largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-    var d = [
-        "M", start.x, start.y,
-        "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
-    ].join(" ");
-
-    return d + ' ';
 }

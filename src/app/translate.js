@@ -29,6 +29,7 @@ module.exports = function (ctx) {
     function activate(g) {
         action = createTranslateAction(ctx.active.datum());
         ctx.active = g;
+        ctx.active.raise();
     }
 
     function createTranslateAction(d) {

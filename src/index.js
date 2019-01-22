@@ -17,6 +17,7 @@ window.d3Paint = function (elementOrSelector) {
 
     ctx.containerElement = d3.select(elementOrSelector);
     ctx.svg = ctx.containerElement.append('svg');
+    ctx.defs = ctx.svg.append('defs');
     ctx.transform = d3.zoomTransform(ctx.svg);
 
     svg.setContext(ctx);

@@ -11,7 +11,7 @@ function panzoom(ctx) {
     function applyTransform() {
         ctx.canvas.applyTransform()
         ctx.axes.applyZoom(ctx.transform);
-        ctx.active && ctx.extent.updateExtent(ctx);
+        ctx.extent.updateExtent();
         ctx.broker.fire(ctx.broker.events.TRANSFORM, ctx.transform)
     }
 

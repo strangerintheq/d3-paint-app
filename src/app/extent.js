@@ -12,6 +12,7 @@ function extent(ctx) {
 
     var path = extent.append('path')
         .call(style)
+        .attr("clip-path", "url(#clip-knobs)")
         .attr('pointer-events', 'none');
 
     var center = extent.append('circle')
@@ -27,14 +28,17 @@ function extent(ctx) {
         ['e', 0, -1, scale(ctx, 'w', 'e', null, null, 0, 0.5,'w', null, null)],
         ['ne', 0, -1, scale(ctx, 'sw', 'se','sw', 'nw',0,1, 'nw', 'sw', 'se')],
         ['n', -1, 0, scale(ctx, null, null,'s', 'n',0.5, 1,null, null, 's')],
-        ['r', 0, -15, rotate(ctx, center)]
+        ['r', 0, -25, rotate(ctx, center)]
     ];
+
+    var clipPath = ctx.defs.append("clipPath")
+        .attr("id", "clip-knobs")
+        .append("path");
 
     var knobs = extent.selectAll('circle.knob')
         .data(placementKeys)
         .enter()
         .append('circle')
-        .classed('knob', true)
         .call(circle)
         .attr('cursor', 'pointer')
         .each(function (d) {
@@ -43,22 +47,33 @@ function extent(ctx) {
             d[3] && knob.call(d[3](knob));
         });
 
+    var outline = ctx.svg.select('.helpers')
+        .append('path')
+        .classed('outline', true)
+        .attr('stroke', 'rgba(0, 40, 255, 0.3)')
+        .attr('stroke-width', 6)
+        //.attr('stroke-linecap', 'square')
+        .attr('fill', 'transparent')
+        .attr('pointer-events', 'none');
+
     return {
         updateExtent: render
     };
 
     function render() {
         var a = ctx.active;
+
         if (!a) {
             path.attr('d', '');
             knobs.attr('display', 'none');
+            outline.attr('d', '');
             return;
         }
 
         var thick = a.attr('stroke-width') ||
             d3.select(a.node().firstChild).attr('stroke-width');
 
-        var pad = 2 + thick / 2 / ctx.transform.k;
+        var pad = 0;//2 + thick / 2 / ctx.transform.k;
         var calc = svg.createPointCalc(a, pad);
 
         var pts = placementKeys.map(function (p) {
@@ -69,9 +84,10 @@ function extent(ctx) {
         var ox = svg.screenOffsetX(ctx);
         var oy = svg.screenOffsetY(ctx);
         var d = "";
+        var clipD = "M-2000,-2000L-2000,2000L2000,2000L2000,-2000Z";
         pts.forEach(function (p, i) {
 
-            d3.select('circle.' + placementKeys[i][0])
+            d3.selectAll('circle.' + placementKeys[i][0])
                 .attr('display', 'visible')
                 .attr('cx', p.pad.x - ox)
                 .attr('cy', p.pad.y - oy)
@@ -86,8 +102,14 @@ function extent(ctx) {
                 d += (p.pad.y - oy) + " ";
             }
 
+            clipD += svg.circlePath(p.pad.x - ox, p.pad.y - oy, 5)
+
         });
+        clipPath.attr('d', clipD);
         path.attr('d', d + "Z");
+        outline.attr('d', a.attr('d') || d3.select(a.node().firstChild).attr('d'))
+            .attr('stroke-width', (5/ctx.transform.k) +(+thick))
+            .attr('transform', a.attr('transform') || d3.select(a.node().parentNode).attr('transform'));
     }
 
     function circle(el) {

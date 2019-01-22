@@ -62,7 +62,6 @@ function canvas(ctx) {
     function drawStart() {
         var group = canvas
             .append('g')
-            .style('cursor', 'move')
             .datum({x: 0, y: 0, r: 0});
 
         action = createDrawAction(ctx.active);
@@ -80,10 +79,12 @@ function canvas(ctx) {
     }
 
     function drawEnd() {
+
         ctx.extent.updateExtent(ctx);
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
-            .call(createTranslate(ctx));
+            .call(createTranslate(ctx))
+            .style('cursor', 'move');
 
         action.endDraw();
         ctx.broker.fire(ctx.broker.events.ACTION, action);
