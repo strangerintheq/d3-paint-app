@@ -36,7 +36,7 @@ paint.on('mode', function (mode) {
     })
 });
 
-['undo','redo','delete'].forEach(function (type) {
+['undo','redo','delete', 'edit'].forEach(function (type) {
     paint.on('can-' + type, function (can) {
         var node = d3.select('button#' + type).node();
         can ? node.removeAttribute('disabled'): node.setAttribute('disabled', '')

@@ -75,6 +75,7 @@ function extent(ctx) {
 
     function changeCanDeleteState() {
         ctx.broker.fire(ctx.broker.events.CAN_DELETE, canDelete = !canDelete);
+        ctx.broker.fire(ctx.broker.events.CAN_EDIT, canDelete);
     }
 
     function render() {

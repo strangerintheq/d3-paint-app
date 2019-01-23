@@ -1529,7 +1529,7 @@ function broker() {
     }
 }
 
-},{"./events":11}],10:[function(require,module,exports){
+},{"./events":12}],10:[function(require,module,exports){
 // app/canvas.js
 
 var createTranslate = require('./translate');
@@ -1645,10 +1645,64 @@ function canvas(ctx) {
     }
 }
 
-},{"./svg":17,"./translate":18}],11:[function(require,module,exports){
+},{"./svg":18,"./translate":19}],11:[function(require,module,exports){
+// app/edit.js
+
+var svg = require('./svg');
+
+module.exports = function (ctx) {
+    var pt = ctx.svg.node().createSVGPoint();
+    var edit = svg.g('edit');
+
+    ctx.broker.on(ctx.broker.events.EDIT, function () {
+        var path = ctx.active.node().firstChild;
+        var d = path.getAttribute('d');
+        var s = 'MmLlSsQqHhVvCcSsQqTtAaZz'.split('')
+        var tokens = d.split(new RegExp(s.join('|'), 'g'));
+        var pts = [];
+        tokens.forEach(function (command) {
+            var coords = command.split(',');
+            while (coords.length > 1) {
+                pts.push({
+                    x: coords.shift(),
+                    y: coords.shift()
+                })
+            }
+        });
+
+        var ctm = path.getScreenCTM();
+
+        var selection = edit.selectAll('circle.editor-anchor-point').data(pts);
+        selection
+            .enter()
+            .append('circle')
+            .classed('editor-anchor-point', true)
+            .attr('r', 5)
+            .attr('stroke', '#0020ff')
+            .attr('stroke-width', 1.2)
+            .attr('fill', 'transparent')
+            .each(function (d) {
+
+                pt.x = d.x;
+                pt.y = d.y;
+
+                var p = pt.matrixTransform(ctm);
+
+                d3.select(this)
+                    .attr('cx', p.x - svg.screenOffsetX())
+                    .attr('cy', p.y - svg.screenOffsetY())
+            });
+        
+        selection.exit()
+            .remove();
+    })
+};
+},{"./svg":18}],12:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
+
+    // actions
     UNDO: 'undo',
     REDO: 'redo',
     MODE: 'mode',
@@ -1656,12 +1710,17 @@ module.exports = {
     TRANSFORM: 'transform',
     ACTION: 'action',
     DELETE: 'delete',
+    EDIT: 'edit',
+
+    // flags
     CAN_REDO: 'can-redo',
     CAN_UNDO: 'can-undo',
-    CAN_DELETE: 'can-delete'
+    CAN_DELETE: 'can-delete',
+    CAN_EDIT: 'can-edit'
+
 };
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // app/extent.js
 
 module.exports = extent;
@@ -1739,6 +1798,7 @@ function extent(ctx) {
 
     function changeCanDeleteState() {
         ctx.broker.fire(ctx.broker.events.CAN_DELETE, canDelete = !canDelete);
+        ctx.broker.fire(ctx.broker.events.CAN_EDIT, canDelete);
     }
 
     function render() {
@@ -1812,7 +1872,7 @@ function extent(ctx) {
     }
 }
 
-},{"./rotate":15,"./scale":16,"./svg":17}],13:[function(require,module,exports){
+},{"./rotate":16,"./scale":17,"./svg":18}],14:[function(require,module,exports){
 // app/modes.js
 
 var modes = {
@@ -1828,7 +1888,7 @@ module.exports = function (ctx) {
     });
 };
 
-},{"../mode/circle":21,"../mode/line":22,"../mode/pen":23,"../mode/rect":24}],14:[function(require,module,exports){
+},{"../mode/circle":22,"../mode/line":23,"../mode/pen":24,"../mode/rect":25}],15:[function(require,module,exports){
 // app/panzoom.js
 
 module.exports = panzoom;
@@ -1870,7 +1930,7 @@ function panzoom(ctx) {
     }
 }
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // app/rotate.js
 
 var svg = require('./svg');
@@ -1938,7 +1998,7 @@ function rotate(ctx, center) {
     }
 }
 
-},{"./svg":17}],16:[function(require,module,exports){
+},{"./svg":18}],17:[function(require,module,exports){
 var svgpath = require('svgpath');
 var svg = require('./svg');
 
@@ -2124,7 +2184,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
         }
     }
 };
-},{"./svg":17,"svgpath":1}],17:[function(require,module,exports){
+},{"./svg":18,"svgpath":1}],18:[function(require,module,exports){
 // app/svg.js
 
 var ctx;
@@ -2236,7 +2296,7 @@ function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
     };
 }
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var svg = require('./svg');
 
 module.exports = function (ctx) {
@@ -2296,7 +2356,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{"./svg":17}],19:[function(require,module,exports){
+},{"./svg":18}],20:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -2341,7 +2401,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -2350,6 +2410,7 @@ var createCanvas = require('./app/canvas');
 var createPanZoom = require('./app/panzoom');
 var createBroker = require('./app/broker');
 var createModes = require('./app/modes');
+var createPathEditor = require('./app/edit');
 var addUndoRedoSupport = require('./app/undoredo');
 var svg = require('./app/svg');
 
@@ -2374,6 +2435,7 @@ window.d3Paint = function (elementOrSelector) {
     createModes(ctx);
     createPanZoom(ctx);
     addUndoRedoSupport(ctx);
+    createPathEditor(ctx);
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
 
@@ -2384,7 +2446,7 @@ window.d3Paint = function (elementOrSelector) {
     return ctx.broker;
 };
 
-},{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/extent":12,"./app/modes":13,"./app/panzoom":14,"./app/svg":17,"./app/undoredo":19}],21:[function(require,module,exports){
+},{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/edit":11,"./app/extent":13,"./app/modes":14,"./app/panzoom":15,"./app/svg":18,"./app/undoredo":20}],22:[function(require,module,exports){
 // mode/circle.js
 var svg = require('../app/svg');
 
@@ -2416,7 +2478,7 @@ function dragMove(mouse) {
         })
 }
 
-},{"../app/svg":17}],22:[function(require,module,exports){
+},{"../app/svg":18}],23:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -2453,7 +2515,7 @@ function dragMove(e) {
 
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -2500,7 +2562,7 @@ function dragMove(e) {
     ctx.active.attr("d", line);
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -2540,4 +2602,4 @@ function dragMove(e) {
         })
 }
 
-},{}]},{},[20]);
+},{}]},{},[21]);

@@ -6,6 +6,7 @@ var createCanvas = require('./app/canvas');
 var createPanZoom = require('./app/panzoom');
 var createBroker = require('./app/broker');
 var createModes = require('./app/modes');
+var createPathEditor = require('./app/edit');
 var addUndoRedoSupport = require('./app/undoredo');
 var svg = require('./app/svg');
 
@@ -30,6 +31,7 @@ window.d3Paint = function (elementOrSelector) {
     createModes(ctx);
     createPanZoom(ctx);
     addUndoRedoSupport(ctx);
+    createPathEditor(ctx);
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
 
