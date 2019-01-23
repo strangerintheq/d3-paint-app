@@ -134,8 +134,6 @@ function extent(ctx) {
 
     }
 
-
-
     function circle(el) {
         el.call(style)
             .attr('display', 'none')

@@ -27,11 +27,11 @@ window.d3Paint = function (elementOrSelector) {
     ctx.axes = createAxes(ctx.svg);
     ctx.canvas = createCanvas(ctx);
     ctx.extent = createExtent(ctx);
-
+    ctx.edit = createPathEditor(ctx);
     createModes(ctx);
     createPanZoom(ctx);
     addUndoRedoSupport(ctx);
-    createPathEditor(ctx);
+
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
 

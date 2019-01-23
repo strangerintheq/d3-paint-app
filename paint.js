@@ -1651,51 +1651,103 @@ function canvas(ctx) {
 var svg = require('./svg');
 
 module.exports = function (ctx) {
+
     var pt = ctx.svg.node().createSVGPoint();
     var edit = svg.g('edit');
+    var active;
+    var activePathD;
+    var activePathCmds;
 
-    ctx.broker.on(ctx.broker.events.EDIT, function () {
-        var path = ctx.active.node().firstChild;
-        var d = path.getAttribute('d');
-        var s = 'MmLlSsQqHhVvCcSsQqTtAaZz'.split('')
-        var tokens = d.split(new RegExp(s.join('|'), 'g'));
-        var pts = [];
-        tokens.forEach(function (command) {
+    ctx.broker.on(ctx.broker.events.EDIT, startEdit);
+
+    return {
+        updatePathEditor: updatePathEditorPoints
+    };
+
+    function updatePathEditorPoints() {
+        if (!active)
+            return;
+
+        var activePathPoints = [];
+        var ctm = active.getScreenCTM();
+        var cmdIndex = 0;
+        activePathD.forEach(function (command) {
             var coords = command.split(',');
+            var notNeedCmd;
             while (coords.length > 1) {
-                pts.push({
-                    x: coords.shift(),
-                    y: coords.shift()
-                })
+                pt.x = +coords.shift().trim();
+                pt.y = +coords.shift().trim();
+                var p = pt.matrixTransform(ctm);
+                activePathPoints.push({
+                    x: p.x - svg.screenOffsetX(),
+                    y: p.y - svg.screenOffsetY(),
+                    px: pt.x,
+                    py: pt.y,
+                    cmd: notNeedCmd ? '' : activePathCmds[cmdIndex++]
+                });
+                notNeedCmd = true;
             }
         });
 
-        var ctm = path.getScreenCTM();
+        var selection = edit
+            .selectAll('circle.editor-anchor-point')
+            .data(activePathPoints);
 
-        var selection = edit.selectAll('circle.editor-anchor-point').data(pts);
         selection
             .enter()
             .append('circle')
             .classed('editor-anchor-point', true)
             .attr('r', 5)
-            .attr('stroke', '#0020ff')
+            .attr('stroke', '#fcf9ff')
             .attr('stroke-width', 1.2)
             .attr('fill', 'transparent')
-            .each(function (d) {
+            .call(d3.drag()
+                .subject(function (d) {
+                    return d
+                })
+                .on('start', function () {
 
-                pt.x = d.x;
-                pt.y = d.y;
+                })
+                .on('drag', function (d) {
+                    d.x = d3.event.x;
+                    d.y = d3.event.y;
+                    upd(d3.select(this))
+                    console.log(d)
+                })
+                .on('end', function (d) {
 
-                var p = pt.matrixTransform(ctm);
+                }))
+            .call(upd)
+            .merge(selection);
 
-                d3.select(this)
-                    .attr('cx', p.x - svg.screenOffsetX())
-                    .attr('cy', p.y - svg.screenOffsetY())
-            });
-        
         selection.exit()
             .remove();
-    })
+
+        upd(selection)
+    }
+
+    function startEdit() {
+        active = ctx.active.node().firstChild;
+        var d = active.getAttribute('d');
+        var s = 'MmLlSsQqHhVvCcSsQqTtAaZz'.split('');
+        activePathD = d.split(new RegExp(s.join('|'), 'g'));
+        activePathCmds = [];
+        d.split('').forEach(function (sym) {
+            if (s.indexOf(sym) > -1)
+                activePathCmds.push(sym);
+        });
+        updatePathEditorPoints()
+    }
+
+    function upd(selection) {
+        selection
+            .attr('cx', function (d) {
+                return d.x;
+            })
+            .attr('cy', function (d) {
+                return d.y;
+            });
+    }
 };
 },{"./svg":18}],12:[function(require,module,exports){
 // app/events.js
@@ -1857,8 +1909,6 @@ function extent(ctx) {
 
     }
 
-
-
     function circle(el) {
         el.call(style)
             .attr('display', 'none')
@@ -1903,6 +1953,7 @@ function panzoom(ctx) {
         ctx.canvas.applyTransform()
         ctx.axes.applyZoom(ctx.transform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
         ctx.broker.fire(ctx.broker.events.TRANSFORM, ctx.transform)
     }
 
@@ -2431,11 +2482,11 @@ window.d3Paint = function (elementOrSelector) {
     ctx.axes = createAxes(ctx.svg);
     ctx.canvas = createCanvas(ctx);
     ctx.extent = createExtent(ctx);
-
+    ctx.edit = createPathEditor(ctx);
     createModes(ctx);
     createPanZoom(ctx);
     addUndoRedoSupport(ctx);
-    createPathEditor(ctx);
+
 
     ctx.broker.fire(ctx.broker.events.RESIZE);
 
