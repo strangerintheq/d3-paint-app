@@ -4,6 +4,8 @@ var svg = require('./svg');
 
 module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
+    var action;
+
     return function (knob) {
         return d3.drag()
             .on("start", startScale)
@@ -93,6 +95,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
                 .attr('cx', knob.datum().x)
                 .attr('cy', knob.datum().y)
                 .attr('fill', 'none');
+
+            action = createScaleAction(ctx.active);
         }
 
         function endScale(d){
@@ -106,6 +110,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
                 d[key] = null;
             });
 
+            action.endScale();
+            ctx.broker.fire(ctx.broker.events.ACTION, action);
             d.path = null;
         }
 
@@ -148,5 +154,32 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
             })
             .attr('stroke-width', 1.8)
             .attr('stroke', 'red')
+    }
+
+    function createScaleAction(shape) {
+        var initialPath = getD();
+        var resultPath;
+        return {
+            endScale: function() {
+                resultPath = getD();
+            },
+
+            undo: function () {
+                doScale(initialPath);
+            },
+
+            redo: function () {
+                doScale(resultPath);
+            }
+        };
+
+        function doScale(pathD) {
+            d3.select(shape.node().firstChild).attr('d', pathD);
+            ctx.extent.updateExtent()
+        }
+
+        function getD() {
+            return d3.select(shape.node().firstChild).attr('d')
+        }
     }
 };

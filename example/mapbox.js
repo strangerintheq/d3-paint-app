@@ -13,8 +13,7 @@ var map = new mapboxgl.Map({
 
 var paint = d3Paint("#paint");
 
-window.addEventListener('resize',
-    paint.fire.bind(paint, 'resize'));
+window.addEventListener('resize', paint.fire.bind(paint, 'resize'));
 
 paint.on('transform', function (transform) {
     var merc = Math.cos(map.transform._center.lat*Math.PI/180);
@@ -37,22 +36,12 @@ paint.on('mode', function (mode) {
     })
 });
 
-paint.on('can-undo', function (can) {
-    setEnabled('button#undo', can)
+['undo','redo','delete'].forEach(function (type) {
+    paint.on('can-' + type, function (can) {
+        var node = d3.select('button#' + type).node();
+        can ? node.removeAttribute('disabled'): node.setAttribute('disabled', '')
+    });
 });
-
-paint.on('can-redo', function (can) {
-    setEnabled('button#redo', can);
-});
-
-paint.on('can-delete', function (can) {
-    setEnabled('button#delete', can);
-});
-
-function setEnabled(selector, can) {
-    var node = d3.select(selector).node();
-    can ? node.removeAttribute('disabled'): node.setAttribute('disabled', '')
-}
 
 d3.selectAll('#mode button').each(function () {
     let btn = d3.select(this);
@@ -62,7 +51,6 @@ d3.selectAll('#mode button').each(function () {
     })
 });
 
-
 buttons('#mode','mode');
 buttons('#actions');
 
@@ -71,12 +59,8 @@ function buttons(selector, event) {
         let btn = d3.select(this);
         btn.attr('id', btn.html());
         btn.on('click', function () {
-            if (event)
-                paint.fire(event, btn.attr('id'));
-            else
-                paint.fire(btn.attr('id'));
+            if (event) paint.fire(event, btn.attr('id'));
+            else paint.fire(btn.attr('id'));
         })
     });
-
 }
-
