@@ -1657,7 +1657,8 @@ module.exports = {
     ACTION: 'action',
     DELETE: 'delete',
     CAN_REDO: 'can-redo',
-    CAN_UNDO: 'can-undo'
+    CAN_UNDO: 'can-undo',
+    CAN_DELETE: 'can-delete'
 };
 
 },{}],12:[function(require,module,exports){
@@ -1730,12 +1731,21 @@ function extent(ctx) {
             .on('end', animate)
     }
 
+    var canDelete;
+
     return {
         updateExtent: render
     };
 
+    function changeCanDeleteState() {
+        ctx.broker.fire(ctx.broker.events.CAN_DELETE, canDelete = !canDelete);
+    }
+
     function render() {
         var a = ctx.active;
+
+        if (canDelete && !ctx.active || !canDelete && ctx.active)
+            changeCanDeleteState()
 
         if (!a) {
             path.attr('d', '');

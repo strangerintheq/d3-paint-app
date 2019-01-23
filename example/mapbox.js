@@ -45,6 +45,10 @@ paint.on('can-redo', function (can) {
     setEnabled('button#redo', can);
 });
 
+paint.on('can-delete', function (can) {
+    setEnabled('button#delete', can);
+});
+
 function setEnabled(selector, can) {
     var node = d3.select(selector).node();
     can ? node.removeAttribute('disabled'): node.setAttribute('disabled', '')

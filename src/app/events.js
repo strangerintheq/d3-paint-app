@@ -9,5 +9,6 @@ module.exports = {
     ACTION: 'action',
     DELETE: 'delete',
     CAN_REDO: 'can-redo',
-    CAN_UNDO: 'can-undo'
+    CAN_UNDO: 'can-undo',
+    CAN_DELETE: 'can-delete'
 };

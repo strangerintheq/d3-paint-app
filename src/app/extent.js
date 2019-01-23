@@ -67,12 +67,21 @@ function extent(ctx) {
             .on('end', animate)
     }
 
+    var canDelete;
+
     return {
         updateExtent: render
     };
 
+    function changeCanDeleteState() {
+        ctx.broker.fire(ctx.broker.events.CAN_DELETE, canDelete = !canDelete);
+    }
+
     function render() {
         var a = ctx.active;
+
+        if (canDelete && !ctx.active || !canDelete && ctx.active)
+            changeCanDeleteState()
 
         if (!a) {
             path.attr('d', '');
