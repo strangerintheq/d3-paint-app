@@ -19,13 +19,16 @@ function rotate(ctx, center) {
                 action = createRotateAction(ctx.active);
             })
             .on("drag", function (d) {
-                var x = d3.event.x;
-                var y = d3.event.y;
-                var a = Math.atan2(y - d.cy, x - d.cx) * 180 / Math.PI + 90;
-
-                // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
-                //     a = 90 * (a/90).toFixed(0);
-
+                var x = d3.event.x - d.cx;
+                var y = d3.event.y - d.cy;
+                var a = Math.atan2(y , x) * 180 / Math.PI + 90;
+                if (!d3.event.sourceEvent.ctrlKey) {
+                    var snapEvery = 45, precision = 5;
+                    var pct = Math.abs(a) % snapEvery;
+                    if (pct < precision || snapEvery - pct < precision) {
+                        a = snapEvery * (a/snapEvery).toFixed(0);
+                    }
+                }
                 doRotate(ctx.active, a);
             })
             .on("end", function (d) {
@@ -36,8 +39,6 @@ function rotate(ctx, center) {
                 action = null;
             })
     };
-
-
 
     function doRotate(shape, r) {
         shape.datum().r = r;

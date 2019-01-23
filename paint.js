@@ -1616,9 +1616,11 @@ function canvas(ctx) {
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx))
-            .style('cursor', 'move');
+            .style('cursor', 'move')
+            .attr('transform', svg.getTransform);
 
         action.endDraw();
+
         ctx.broker.fire(ctx.broker.events.ACTION, action);
     }
 
@@ -1712,10 +1714,21 @@ function extent(ctx) {
         .append('path')
         .classed('outline', true)
         .attr('stroke', 'rgba(0, 40, 255, 0.3)')
-        .attr('stroke-width', 6)
         //.attr('stroke-linecap', 'square')
         .attr('fill', 'transparent')
         .attr('pointer-events', 'none');
+
+    animate();
+
+    function animate() {
+        outline.transition()
+            .duration(1000)
+            .attr('stroke', 'rgba(255, 40, 0, 0.3)')
+            .transition()
+            .duration(1000)
+            .attr('stroke', 'rgba(40, 255, 0, 0.3)')
+            .on('end', animate)
+    }
 
     return {
         updateExtent: render
@@ -1771,7 +1784,10 @@ function extent(ctx) {
         outline.attr('d', a.attr('d') || d3.select(a.node().firstChild).attr('d'))
             .attr('stroke-width', (5/ctx.transform.k) +(+thick))
             .attr('transform', a.attr('transform') || d3.select(a.node().parentNode).attr('transform'));
+
     }
+
+
 
     function circle(el) {
         el.call(style)
@@ -1866,13 +1882,16 @@ function rotate(ctx, center) {
                 action = createRotateAction(ctx.active);
             })
             .on("drag", function (d) {
-                var x = d3.event.x;
-                var y = d3.event.y;
-                var a = Math.atan2(y - d.cy, x - d.cx) * 180 / Math.PI + 90;
-
-                // if (d3.event.sourceEvent.ctrlKey && Math.abs(a) % 90 < 9)
-                //     a = 90 * (a/90).toFixed(0);
-
+                var x = d3.event.x - d.cx;
+                var y = d3.event.y - d.cy;
+                var a = Math.atan2(y , x) * 180 / Math.PI + 90;
+                if (!d3.event.sourceEvent.ctrlKey) {
+                    var snapEvery = 45, precision = 5;
+                    var pct = Math.abs(a) % snapEvery;
+                    if (pct < precision || snapEvery - pct < precision) {
+                        a = snapEvery * (a/snapEvery).toFixed(0);
+                    }
+                }
                 doRotate(ctx.active, a);
             })
             .on("end", function (d) {
@@ -1883,8 +1902,6 @@ function rotate(ctx, center) {
                 action = null;
             })
     };
-
-
 
     function doRotate(shape, r) {
         shape.datum().r = r;

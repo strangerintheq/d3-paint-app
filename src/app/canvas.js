@@ -84,9 +84,11 @@ function canvas(ctx) {
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx))
-            .style('cursor', 'move');
+            .style('cursor', 'move')
+            .attr('transform', svg.getTransform);
 
         action.endDraw();
+
         ctx.broker.fire(ctx.broker.events.ACTION, action);
     }
 

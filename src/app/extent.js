@@ -51,10 +51,21 @@ function extent(ctx) {
         .append('path')
         .classed('outline', true)
         .attr('stroke', 'rgba(0, 40, 255, 0.3)')
-        .attr('stroke-width', 6)
         //.attr('stroke-linecap', 'square')
         .attr('fill', 'transparent')
         .attr('pointer-events', 'none');
+
+    animate();
+
+    function animate() {
+        outline.transition()
+            .duration(1000)
+            .attr('stroke', 'rgba(255, 40, 0, 0.3)')
+            .transition()
+            .duration(1000)
+            .attr('stroke', 'rgba(40, 255, 0, 0.3)')
+            .on('end', animate)
+    }
 
     return {
         updateExtent: render
@@ -110,7 +121,10 @@ function extent(ctx) {
         outline.attr('d', a.attr('d') || d3.select(a.node().firstChild).attr('d'))
             .attr('stroke-width', (5/ctx.transform.k) +(+thick))
             .attr('transform', a.attr('transform') || d3.select(a.node().parentNode).attr('transform'));
+
     }
+
+
 
     function circle(el) {
         el.call(style)
