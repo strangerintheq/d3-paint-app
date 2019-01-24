@@ -1,6 +1,6 @@
 // mode/circle.js
 var svg = require('../app/svg');
-
+var svgpath = require('svgpath');
 var active;
 
 var mode = {
@@ -25,6 +25,6 @@ function dragMove(mouse) {
         .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
-            return svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)
+            return svgpath(svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)).unarc().toString()
         })
 }

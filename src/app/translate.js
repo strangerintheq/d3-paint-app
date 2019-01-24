@@ -24,6 +24,7 @@ module.exports = function (ctx) {
         d.y = d3.event.y;
         ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 
     function activate(g) {

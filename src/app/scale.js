@@ -68,7 +68,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
             ctx.active.attr('transform', svg.getTransform);
             ctx.extent.updateExtent();
-
+            ctx.edit.updatePathEditor();
         }
 
         function startScale(d) {
@@ -175,7 +175,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
         function doScale(pathD) {
             d3.select(shape.node().firstChild).attr('d', pathD);
-            ctx.extent.updateExtent()
+            ctx.extent.updateExtent();
+            ctx.edit.updatePathEditor();
         }
 
         function getD() {

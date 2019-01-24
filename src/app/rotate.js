@@ -44,6 +44,7 @@ function rotate(ctx, center) {
         shape.datum().r = r;
         shape.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 
     function createRotateAction(shape) {

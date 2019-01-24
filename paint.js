@@ -1647,7 +1647,7 @@ function canvas(ctx) {
 
 },{"./svg":18,"./translate":19}],11:[function(require,module,exports){
 // app/edit.js
-
+var svgpath = require('svgpath');
 var svg = require('./svg');
 
 module.exports = function (ctx) {
@@ -1655,9 +1655,7 @@ module.exports = function (ctx) {
     var pt = ctx.svg.node().createSVGPoint();
     var edit = svg.g('edit');
     var active;
-    var activePathD;
-    var activePathCmds;
-
+    var svgPathEditor;
     ctx.broker.on(ctx.broker.events.EDIT, startEdit);
 
     return {
@@ -1669,24 +1667,19 @@ module.exports = function (ctx) {
             return;
 
         var activePathPoints = [];
-        var ctm = active.getScreenCTM();
-        var cmdIndex = 0;
-        activePathD.forEach(function (command) {
-            var coords = command.split(',');
-            var notNeedCmd;
-            while (coords.length > 1) {
-                pt.x = +coords.shift().trim();
-                pt.y = +coords.shift().trim();
-                var p = pt.matrixTransform(ctm);
-                activePathPoints.push({
-                    x: p.x - svg.screenOffsetX(),
-                    y: p.y - svg.screenOffsetY(),
-                    px: pt.x,
-                    py: pt.y,
-                    cmd: notNeedCmd ? '' : activePathCmds[cmdIndex++]
-                });
-                notNeedCmd = true;
-            }
+        svgPathEditor = svgpath(active.getAttribute('d'));
+        svgPathEditor.segments.forEach(function (seg) {
+            if (!seg[1])
+                return;
+
+            pt.x = seg[1];
+            pt.y = seg[2];
+            var p = pt.matrixTransform(active.getScreenCTM());
+            activePathPoints.push({
+                x: p.x - svg.screenOffsetX(),
+                y: p.y - svg.screenOffsetY(),
+                seg: seg
+            });
         });
 
         var selection = edit
@@ -1700,10 +1693,11 @@ module.exports = function (ctx) {
             .attr('r', 5)
             .attr('stroke', '#fcf9ff')
             .attr('stroke-width', 1.2)
+            .attr('cursor', 'pointer')
             .attr('fill', 'transparent')
             .call(d3.drag()
                 .subject(function (d) {
-                    return d
+                    return d;
                 })
                 .on('start', function () {
 
@@ -1711,8 +1705,17 @@ module.exports = function (ctx) {
                 .on('drag', function (d) {
                     d.x = d3.event.x;
                     d.y = d3.event.y;
-                    upd(d3.select(this))
-                    console.log(d)
+                    upd(d3.select(this));
+
+                    pt.x = d.x + svg.screenOffsetX();
+                    pt.y = d.y + svg.screenOffsetY();
+
+                    var p = pt.matrixTransform(active.getScreenCTM().inverse());
+
+                    d.seg[1] = p.x;
+                    d.seg[2] = p.y;
+                    active.setAttribute('d', svgPathEditor.toString());
+                    ctx.extent.updateExtent();
                 })
                 .on('end', function (d) {
 
@@ -1728,14 +1731,7 @@ module.exports = function (ctx) {
 
     function startEdit() {
         active = ctx.active.node().firstChild;
-        var d = active.getAttribute('d');
-        var s = 'MmLlSsQqHhVvCcSsQqTtAaZz'.split('');
-        activePathD = d.split(new RegExp(s.join('|'), 'g'));
-        activePathCmds = [];
-        d.split('').forEach(function (sym) {
-            if (s.indexOf(sym) > -1)
-                activePathCmds.push(sym);
-        });
+
         updatePathEditorPoints()
     }
 
@@ -1749,7 +1745,7 @@ module.exports = function (ctx) {
             });
     }
 };
-},{"./svg":18}],12:[function(require,module,exports){
+},{"./svg":18,"svgpath":1}],12:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
@@ -2028,6 +2024,7 @@ function rotate(ctx, center) {
         shape.datum().r = r;
         shape.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 
     function createRotateAction(shape) {
@@ -2120,7 +2117,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
             ctx.active.attr('transform', svg.getTransform);
             ctx.extent.updateExtent();
-
+            ctx.edit.updatePathEditor();
         }
 
         function startScale(d) {
@@ -2227,7 +2224,8 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
 
         function doScale(pathD) {
             d3.select(shape.node().firstChild).attr('d', pathD);
-            ctx.extent.updateExtent()
+            ctx.extent.updateExtent();
+            ctx.edit.updatePathEditor();
         }
 
         function getD() {
@@ -2374,6 +2372,7 @@ module.exports = function (ctx) {
         d.y = d3.event.y;
         ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 
     function activate(g) {
@@ -2500,7 +2499,7 @@ window.d3Paint = function (elementOrSelector) {
 },{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/edit":11,"./app/extent":13,"./app/modes":14,"./app/panzoom":15,"./app/svg":18,"./app/undoredo":20}],22:[function(require,module,exports){
 // mode/circle.js
 var svg = require('../app/svg');
-
+var svgpath = require('svgpath');
 var active;
 
 var mode = {
@@ -2525,11 +2524,11 @@ function dragMove(mouse) {
         .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
-            return svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)
+            return svgpath(svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)).unarc().toString()
         })
 }
 
-},{"../app/svg":18}],23:[function(require,module,exports){
+},{"../app/svg":18,"svgpath":1}],23:[function(require,module,exports){
 // mode/line.js
 
 var active;
