@@ -1650,6 +1650,20 @@ function canvas(ctx) {
 var svgpath = require('svgpath');
 var svg = require('./svg');
 
+var commandLayout = {
+    a: [[1, 2], [6, 7]],
+    c: [[1, 2, true], [3, 4, true], [5, 6]],
+   // h: 1,
+    l: [[1, 2]],
+    m: [[1, 2]],
+    r: [[1, 2]],
+    q: [[1, 2], [3, 4]],
+    s: [[1, 2], [3, 4]],
+    t: [[1, 2]],
+  // v: 1,
+  // z: 0
+};
+
 module.exports = function (ctx) {
 
     var pt = ctx.svg.node().createSVGPoint();
@@ -1667,19 +1681,28 @@ module.exports = function (ctx) {
             return;
 
         var activePathPoints = [];
-        svgPathEditor = svgpath(active.getAttribute('d'));
-        svgPathEditor.segments.forEach(function (seg) {
-            if (!seg[1])
-                return;
 
-            pt.x = seg[1];
-            pt.y = seg[2];
+        function addPoint(segment, xIndex, yIndex, isControlPoint) {
+            pt.x = segment[xIndex];
+            pt.y = segment[yIndex];
             var p = pt.matrixTransform(active.getScreenCTM());
             activePathPoints.push({
                 x: p.x - svg.screenOffsetX(),
                 y: p.y - svg.screenOffsetY(),
-                seg: seg
+                xIndex: xIndex,
+                yIndex: yIndex,
+                segment: segment,
+                isControlPoint: isControlPoint
             });
+        }
+
+        svgPathEditor = svgpath(active.getAttribute('d'));
+        svgPathEditor.segments.forEach(function (seg) {
+            if (!seg[1])
+                return;
+            commandLayout[seg[0].toLowerCase()].forEach(function (indexes) {
+                addPoint(seg, indexes[0],indexes[1], indexes[2]);
+            })
         });
 
         var selection = edit
@@ -1691,7 +1714,9 @@ module.exports = function (ctx) {
             .append('circle')
             .classed('editor-anchor-point', true)
             .attr('r', 5)
-            .attr('stroke', '#fcf9ff')
+            .attr('stroke', function (d) {
+                return d.isControlPoint ? '#ff0013' : '#fcf9ff';
+            })
             .attr('stroke-width', 1.2)
             .attr('cursor', 'pointer')
             .attr('fill', 'transparent')
@@ -1699,26 +1724,17 @@ module.exports = function (ctx) {
                 .subject(function (d) {
                     return d;
                 })
-                .on('start', function () {
-
-                })
                 .on('drag', function (d) {
                     d.x = d3.event.x;
                     d.y = d3.event.y;
                     upd(d3.select(this));
-
                     pt.x = d.x + svg.screenOffsetX();
                     pt.y = d.y + svg.screenOffsetY();
-
                     var p = pt.matrixTransform(active.getScreenCTM().inverse());
-
-                    d.seg[1] = p.x;
-                    d.seg[2] = p.y;
+                    d.segment[d.xIndex] = p.x;
+                    d.segment[d.yIndex] = p.y;
                     active.setAttribute('d', svgPathEditor.toString());
                     ctx.extent.updateExtent();
-                })
-                .on('end', function (d) {
-
                 }))
             .call(upd)
             .merge(selection);
