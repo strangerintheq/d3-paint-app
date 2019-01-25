@@ -63,7 +63,7 @@ function extent(ctx) {
             .attr('stroke', 'rgba(255, 40, 0, 0.3)')
             .transition()
             .duration(1000)
-            .attr('stroke', 'rgba(40, 255, 0, 0.3)')
+            .attr('stroke', 'rgba(0, 40, 255, 0.3)')
             .on('end', animate)
     }
 

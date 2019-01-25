@@ -12,10 +12,14 @@ var commandLayout = {
     c: [[1, 2, 'prev'], [3, 4, 'next'], [5, 6]],
 };
 
+
+
 module.exports = function (ctx) {
 
     var pt = ctx.svg.node().createSVGPoint();
     var edit = svg.g('edit');
+    var controlPointsPath = edit.append('path')
+        .attr('stroke', 'red');
     var active;
     var svgPathEditor;
     ctx.broker.on(ctx.broker.events.EDIT, startEdit);
@@ -24,13 +28,44 @@ module.exports = function (ctx) {
         updatePathEditor: updatePathEditorPoints
     };
 
+    function updateControlPointsPaths(edit, controlPointsPath) {
+        var controlPointsPathD = "";
+        d3.selectAll('circle.editor-anchor-point')
+            .each(function (d) {
+                var cur = d3.select(this);
+                if (d.controlPointMode === 'prev') {
+                    var prevSegIdx = d.segmentIndex - 1;
+                    var prevSeg = svgPathEditor.segments[prevSegIdx];
+                    var prevSegTailIdx = commandLayout[prevSeg[0].toLowerCase()].length - 1;
+                    addLine(cur, prevSegIdx, prevSegTailIdx)
+                }
+                if (d.controlPointMode === 'next') {
+                    addLine(cur, d.segmentIndex,d.pointIndex + 1)
+                }
+            });
+
+        function addLine(curPt, segIdx, ptIdx) {
+            try {
+                var toPt = edit.select('.seg_' + segIdx + '_' + ptIdx);
+                controlPointsPathD += "M" + toPt.attr('cx') +
+                    "," + toPt.attr('cy') +
+                    "L" + curPt.attr('cx') +
+                    "," + curPt.attr('cy');
+            } catch (e) {
+                console.log(curPt)
+            }
+        }
+
+        controlPointsPath.attr('d', controlPointsPathD)
+    }
+
     function updatePathEditorPoints() {
         if (!active)
             return;
 
         var activePathPoints = [];
 
-        function addPoint(segmentIndex, xIndex, yIndex, controlPointMode) {
+        function addPoint(segmentIndex, pointIndex, xIndex, yIndex, controlPointMode) {
             var segment = svgPathEditor.segments[segmentIndex];
             pt.x = segment[xIndex];
             pt.y = segment[yIndex];
@@ -41,7 +76,8 @@ module.exports = function (ctx) {
                 xIndex: xIndex,
                 yIndex: yIndex,
                 segmentIndex: segmentIndex,
-                controlPointMode: controlPointMode
+                controlPointMode: controlPointMode,
+                pointIndex: pointIndex
             });
         }
 
@@ -49,8 +85,8 @@ module.exports = function (ctx) {
         svgPathEditor.segments.forEach(function (seg, i) {
             if (!seg[1])
                 return;
-            commandLayout[seg[0].toLowerCase()].forEach(function (indexes) {
-                addPoint(i, indexes[0],indexes[1], indexes[2]);
+            commandLayout[seg[0].toLowerCase()].forEach(function (indexes, group) {
+                addPoint(i, group, indexes[0],indexes[1], indexes[2]);
             })
         });
 
@@ -63,12 +99,13 @@ module.exports = function (ctx) {
             .append('circle')
             .classed('editor-anchor-point', true)
             .attr('r', 5)
-            .attr('stroke', function (d) {
-                return d.controlPointMode ? '#ff0013' : '#fcf9ff';
-            })
             .attr('stroke-width', 1.2)
             .attr('cursor', 'pointer')
             .attr('fill', 'transparent')
+            .each(function (d) {
+                d3.select(this)
+                    .classed('seg_'+d.segmentIndex+'_'+d.pointIndex, true)
+            })
             .call(d3.drag()
                 .subject(function (d) {
                     return d;
@@ -93,6 +130,24 @@ module.exports = function (ctx) {
             .remove();
 
         upd(selection)
+
+
+        function upd(selection) {
+
+            selection
+                .attr('cx', function (d) {
+                    return d.x;
+                })
+                .attr('cy', function (d) {
+                    return d.y;
+                })
+                .attr('stroke', function (d) {
+                    return d.controlPointMode ? '#ff0013' : '#fcf9ff';
+                });
+
+            updateControlPointsPaths(edit, controlPointsPath);
+
+        }
     }
 
     function startEdit() {
@@ -101,13 +156,4 @@ module.exports = function (ctx) {
         updatePathEditorPoints()
     }
 
-    function upd(selection) {
-        selection
-            .attr('cx', function (d) {
-                return d.x;
-            })
-            .attr('cy', function (d) {
-                return d.y;
-            });
-    }
 };
