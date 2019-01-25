@@ -25,6 +25,6 @@ function dragMove(mouse) {
         .attr('d', function (d) {
             var x = mouse.x - d.x;
             var y = mouse.y - d.y;
-            return svgpath(svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 15)).unarc().toString()
+            return svgpath(svg.circlePath(d.x, d.y, Math.sqrt(x*x + y*y), 45)).unarc().toString()
         })
 }

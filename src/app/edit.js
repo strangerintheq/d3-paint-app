@@ -3,17 +3,13 @@ var svgpath = require('svgpath');
 var svg = require('./svg');
 
 var commandLayout = {
-    a: [[1, 2], [6, 7]],
-    c: [[1, 2, true], [3, 4, true], [5, 6]],
-   // h: 1,
-    l: [[1, 2]],
     m: [[1, 2]],
-    r: [[1, 2]],
-    q: [[1, 2], [3, 4]],
-    s: [[1, 2], [3, 4]],
+    l: [[1, 2]],
     t: [[1, 2]],
-  // v: 1,
-  // z: 0
+    a: [[1, 2], [6, 7]],
+    q: [[1, 2, 'both'], [3, 4]],
+    s: [[1, 2, 'both'], [3, 4]],
+    c: [[1, 2, 'prev'], [3, 4, 'next'], [5, 6]],
 };
 
 module.exports = function (ctx) {
@@ -34,7 +30,8 @@ module.exports = function (ctx) {
 
         var activePathPoints = [];
 
-        function addPoint(segment, xIndex, yIndex, isControlPoint) {
+        function addPoint(segmentIndex, xIndex, yIndex, controlPointMode) {
+            var segment = svgPathEditor.segments[segmentIndex];
             pt.x = segment[xIndex];
             pt.y = segment[yIndex];
             var p = pt.matrixTransform(active.getScreenCTM());
@@ -43,17 +40,17 @@ module.exports = function (ctx) {
                 y: p.y - svg.screenOffsetY(),
                 xIndex: xIndex,
                 yIndex: yIndex,
-                segment: segment,
-                isControlPoint: isControlPoint
+                segmentIndex: segmentIndex,
+                controlPointMode: controlPointMode
             });
         }
 
         svgPathEditor = svgpath(active.getAttribute('d'));
-        svgPathEditor.segments.forEach(function (seg) {
+        svgPathEditor.segments.forEach(function (seg, i) {
             if (!seg[1])
                 return;
             commandLayout[seg[0].toLowerCase()].forEach(function (indexes) {
-                addPoint(seg, indexes[0],indexes[1], indexes[2]);
+                addPoint(i, indexes[0],indexes[1], indexes[2]);
             })
         });
 
@@ -67,7 +64,7 @@ module.exports = function (ctx) {
             .classed('editor-anchor-point', true)
             .attr('r', 5)
             .attr('stroke', function (d) {
-                return d.isControlPoint ? '#ff0013' : '#fcf9ff';
+                return d.controlPointMode ? '#ff0013' : '#fcf9ff';
             })
             .attr('stroke-width', 1.2)
             .attr('cursor', 'pointer')
@@ -83,8 +80,9 @@ module.exports = function (ctx) {
                     pt.x = d.x + svg.screenOffsetX();
                     pt.y = d.y + svg.screenOffsetY();
                     var p = pt.matrixTransform(active.getScreenCTM().inverse());
-                    d.segment[d.xIndex] = p.x;
-                    d.segment[d.yIndex] = p.y;
+                    var seg = svgPathEditor.segments[d.segmentIndex];
+                    seg[d.xIndex] = p.x;
+                    seg[d.yIndex] = p.y;
                     active.setAttribute('d', svgPathEditor.toString());
                     ctx.extent.updateExtent();
                 }))
