@@ -12,8 +12,6 @@ var commandLayout = {
     c: [[1, 2], [3, 4], [5, 6]],
 };
 
-
-
 module.exports = function (ctx) {
 
     var pt = ctx.svg.node().createSVGPoint();
@@ -107,13 +105,14 @@ module.exports = function (ctx) {
             .attr('cursor', 'pointer')
             .attr('fill', 'transparent')
             .each(function (d) {
-                d3.select(this)
-                    .classed('seg_'+d.segmentIndex+'_'+d.pointIndex, true)
-                    .classed('pt_'+d.index, true)
+                d3.select(this).classed('pt_'+d.index, true)
             })
             .call(d3.drag()
                 .subject(function (d) {
                     return d;
+                })
+                .on('start', function (d) {
+                    d.action = createEditAction(active)
                 })
                 .on('drag', function (d) {
                     d.x = d3.event.x;
@@ -127,6 +126,10 @@ module.exports = function (ctx) {
                     seg[d.yIndex] = p.y;
                     active.setAttribute('d', svgPathEditor.toString());
                     ctx.extent.updateExtent();
+                })
+                .on('end', function (d) {
+                    d.action.endEdit();
+                    ctx.broker.fire(ctx.broker.events.ACTION, d.action);
                 }))
             .call(upd)
             .merge(selection);
@@ -134,7 +137,7 @@ module.exports = function (ctx) {
         selection.exit()
             .remove();
 
-        upd(selection)
+        upd(selection);
 
 
         function upd(selection) {
@@ -158,6 +161,34 @@ module.exports = function (ctx) {
     function startEdit() {
         active = ctx.active.node().firstChild;
         updatePathEditorPoints()
+    }
+
+    function createEditAction(shape) {
+        var initialPath = getD();
+        var resultPath;
+        return {
+            endEdit: function() {
+                resultPath = getD();
+            },
+
+            undo: function () {
+                doEdit(initialPath);
+            },
+
+            redo: function () {
+                doEdit(resultPath);
+            }
+        };
+
+        function doEdit(pathD) {
+            d3.select(shape).attr('d', pathD);
+            ctx.extent.updateExtent();
+            ctx.edit.updatePathEditor();
+        }
+
+        function getD() {
+            return d3.select(shape).attr('d')
+        }
     }
 
 };
