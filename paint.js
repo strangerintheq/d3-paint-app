@@ -1645,7 +1645,7 @@ function canvas(ctx) {
     }
 }
 
-},{"./svg":18,"./translate":19}],11:[function(require,module,exports){
+},{"./svg":19,"./translate":20}],11:[function(require,module,exports){
 // app/edit.js
 var svgpath = require('svgpath');
 var svg = require('./svg');
@@ -1655,9 +1655,9 @@ var commandLayout = {
     l: [[1, 2]],
     t: [[1, 2]],
     a: [[1, 2], [6, 7]],
-    q: [[1, 2, 'both'], [3, 4]],
-    s: [[1, 2, 'both'], [3, 4]],
-    c: [[1, 2, 'prev'], [3, 4, 'next'], [5, 6]],
+    q: [[1, 2], [3, 4]],
+    s: [[1, 2], [3, 4]],
+    c: [[1, 2], [3, 4], [5, 6]],
 };
 
 
@@ -1680,22 +1680,15 @@ module.exports = function (ctx) {
         var controlPointsPathD = "";
         d3.selectAll('circle.editor-anchor-point')
             .each(function (d) {
-                var cur = d3.select(this);
-                if (d.controlPointMode === 'prev') {
-                    var prevSegIdx = d.segmentIndex - 1;
-                    var prevSeg = svgPathEditor.segments[prevSegIdx];
-                    var prevSegTailIdx = commandLayout[prevSeg[0].toLowerCase()].length - 1;
-                    addLine(cur, prevSegIdx, prevSegTailIdx)
-                }
-                if (d.controlPointMode === 'next') {
-                    addLine(cur, d.segmentIndex,d.pointIndex + 1)
-                }
+                if(d.prevControlPoint || d.controlPoint)
+                    addLine(d3.select(this), d.index-1)
             });
 
-        function addLine(curPt, segIdx, ptIdx) {
+        function addLine(curPt, ptIdx) {
             try {
-                var toPt = edit.select('.seg_' + segIdx + '_' + ptIdx);
-                controlPointsPathD += "M" + toPt.attr('cx') +
+                var toPt = edit.select('.pt_' + ptIdx);
+                controlPointsPathD +=
+                    "M" + toPt.attr('cx') +
                     "," + toPt.attr('cy') +
                     "L" + curPt.attr('cx') +
                     "," + curPt.attr('cy');
@@ -1713,7 +1706,16 @@ module.exports = function (ctx) {
 
         var activePathPoints = [];
 
-        function addPoint(segmentIndex, pointIndex, xIndex, yIndex, controlPointMode) {
+        function isControlPoint(segmentIndex, pointIndex) {
+            var cmd = svgPathEditor.segments[segmentIndex][0].toLowerCase();
+            return commandLayout[cmd].length !== pointIndex + 1;
+        }
+
+        function isPrevControlPoint() {
+            return activePathPoints.length && activePathPoints[activePathPoints.length - 1].controlPoint;
+        }
+
+        function addPoint(segmentIndex, pointIndex, xIndex, yIndex) {
             var segment = svgPathEditor.segments[segmentIndex];
             pt.x = segment[xIndex];
             pt.y = segment[yIndex];
@@ -1724,8 +1726,10 @@ module.exports = function (ctx) {
                 xIndex: xIndex,
                 yIndex: yIndex,
                 segmentIndex: segmentIndex,
-                controlPointMode: controlPointMode,
-                pointIndex: pointIndex
+                pointIndex: pointIndex,
+                index: activePathPoints.length,
+                controlPoint: isControlPoint(segmentIndex, pointIndex),
+                prevControlPoint: isPrevControlPoint(),
             });
         }
 
@@ -1734,7 +1738,7 @@ module.exports = function (ctx) {
             if (!seg[1])
                 return;
             commandLayout[seg[0].toLowerCase()].forEach(function (indexes, group) {
-                addPoint(i, group, indexes[0],indexes[1], indexes[2]);
+                addPoint(i, group, indexes[0], indexes[1]);
             })
         });
 
@@ -1753,6 +1757,7 @@ module.exports = function (ctx) {
             .each(function (d) {
                 d3.select(this)
                     .classed('seg_'+d.segmentIndex+'_'+d.pointIndex, true)
+                    .classed('pt_'+d.index, true)
             })
             .call(d3.drag()
                 .subject(function (d) {
@@ -1790,7 +1795,7 @@ module.exports = function (ctx) {
                     return d.y;
                 })
                 .attr('stroke', function (d) {
-                    return d.controlPointMode ? '#ff0013' : '#fcf9ff';
+                    return d.controlPoint ? '#ff0013' : '#fcf9ff';
                 });
 
             updateControlPointsPaths(edit, controlPointsPath);
@@ -1800,12 +1805,11 @@ module.exports = function (ctx) {
 
     function startEdit() {
         active = ctx.active.node().firstChild;
-
         updatePathEditorPoints()
     }
 
 };
-},{"./svg":18,"svgpath":1}],12:[function(require,module,exports){
+},{"./svg":19,"svgpath":1}],12:[function(require,module,exports){
 // app/events.js
 
 module.exports = {
@@ -1836,10 +1840,12 @@ module.exports = extent;
 var svg = require('./svg');
 var rotate = require('./rotate');
 var scale = require('./scale');
-
+var filterOutline = require('./filterOutline');
 function extent(ctx) {
 
     var extent = svg.g('extent');
+
+    filterOutline(ctx.defs, 'filter-outline');
 
     var path = extent.append('path')
         .call(style)
@@ -1879,14 +1885,16 @@ function extent(ctx) {
         });
 
     var outline = ctx.svg.select('.helpers')
+
         .append('path')
+        .style('filter', 'url(#filter-outline)')
         .classed('outline', true)
-        .attr('stroke', 'rgba(0, 40, 255, 0.3)')
+        .attr('stroke', 'skyblue')
         //.attr('stroke-linecap', 'square')
         .attr('fill', 'transparent')
         .attr('pointer-events', 'none');
 
-    animate();
+   // animate();
 
     function animate() {
         outline.transition()
@@ -1978,7 +1986,28 @@ function extent(ctx) {
     }
 }
 
-},{"./rotate":16,"./scale":17,"./svg":18}],14:[function(require,module,exports){
+},{"./filterOutline":14,"./rotate":17,"./scale":18,"./svg":19}],14:[function(require,module,exports){
+module.exports = filter_Outline;
+
+
+function filter_Outline(defs, id) {
+    // https://tympanus.net/codrops/2015/03/10/creative-gooey-effects/
+    var filter = defs.append('filter')
+        .attr('id', id);
+
+    filter.append('feGaussianBlur')
+        .attr('in', 'SourceGraphic')
+        .attr('stdDeviation', '1')
+        //to fix safari: http://stackoverflow.com/questions/24295043/svg-gaussian-blur-in-safari-unexpectedly-lightens-image
+        .attr('color-interpolation-filters', 'sRGB')
+        .attr('result', 'blur');
+
+    // filter.append('feColorMatrix')
+    //     .attr('in', 'blur')
+    //     .attr('mode', 'matrix')
+    //     .attr('values', '1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9')
+}
+},{}],15:[function(require,module,exports){
 // app/modes.js
 
 var modes = {
@@ -1994,7 +2023,7 @@ module.exports = function (ctx) {
     });
 };
 
-},{"../mode/circle":22,"../mode/line":23,"../mode/pen":24,"../mode/rect":25}],15:[function(require,module,exports){
+},{"../mode/circle":23,"../mode/line":24,"../mode/pen":25,"../mode/rect":26}],16:[function(require,module,exports){
 // app/panzoom.js
 
 module.exports = panzoom;
@@ -2037,7 +2066,7 @@ function panzoom(ctx) {
     }
 }
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 // app/rotate.js
 
 var svg = require('./svg');
@@ -2106,7 +2135,7 @@ function rotate(ctx, center) {
     }
 }
 
-},{"./svg":18}],17:[function(require,module,exports){
+},{"./svg":19}],18:[function(require,module,exports){
 var svgpath = require('svgpath');
 var svg = require('./svg');
 
@@ -2293,7 +2322,7 @@ module.exports = function (ctx, vxs, vxe, vys, vye, dw, dh, x,xy,y) {
         }
     }
 };
-},{"./svg":18,"svgpath":1}],18:[function(require,module,exports){
+},{"./svg":19,"svgpath":1}],19:[function(require,module,exports){
 // app/svg.js
 
 var ctx;
@@ -2405,7 +2434,7 @@ function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
     };
 }
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var svg = require('./svg');
 
 module.exports = function (ctx) {
@@ -2466,7 +2495,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{"./svg":18}],20:[function(require,module,exports){
+},{"./svg":19}],21:[function(require,module,exports){
 // app/undoredo.js
 
 module.exports = function (ctx) {
@@ -2511,7 +2540,7 @@ module.exports = function (ctx) {
     }
 };
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 // index.js
 
 var createAxes = require('./app/axes');
@@ -2556,7 +2585,7 @@ window.d3Paint = function (elementOrSelector) {
     return ctx.broker;
 };
 
-},{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/edit":11,"./app/extent":13,"./app/modes":14,"./app/panzoom":15,"./app/svg":18,"./app/undoredo":20}],22:[function(require,module,exports){
+},{"./app/axes":8,"./app/broker":9,"./app/canvas":10,"./app/edit":11,"./app/extent":13,"./app/modes":15,"./app/panzoom":16,"./app/svg":19,"./app/undoredo":21}],23:[function(require,module,exports){
 // mode/circle.js
 var svg = require('../app/svg');
 var svgpath = require('svgpath');
@@ -2588,7 +2617,7 @@ function dragMove(mouse) {
         })
 }
 
-},{"../app/svg":18,"svgpath":1}],23:[function(require,module,exports){
+},{"../app/svg":19,"svgpath":1}],24:[function(require,module,exports){
 // mode/line.js
 
 var active;
@@ -2625,7 +2654,7 @@ function dragMove(e) {
 
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 // mode/pen.js
 
 var line = d3.line().curve(d3.curveBasis);
@@ -2672,7 +2701,7 @@ function dragMove(e) {
     ctx.active.attr("d", line);
 }
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 // mode/rect.js
 
 var active;
@@ -2712,4 +2741,4 @@ function dragMove(e) {
         })
 }
 
-},{}]},{},[21]);
+},{}]},{},[22]);

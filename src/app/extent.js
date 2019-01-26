@@ -5,10 +5,12 @@ module.exports = extent;
 var svg = require('./svg');
 var rotate = require('./rotate');
 var scale = require('./scale');
-
+var filterOutline = require('./filterOutline');
 function extent(ctx) {
 
     var extent = svg.g('extent');
+
+    filterOutline(ctx.defs, 'filter-outline');
 
     var path = extent.append('path')
         .call(style)
@@ -48,14 +50,16 @@ function extent(ctx) {
         });
 
     var outline = ctx.svg.select('.helpers')
+
         .append('path')
+        .style('filter', 'url(#filter-outline)')
         .classed('outline', true)
-        .attr('stroke', 'rgba(0, 40, 255, 0.3)')
+        .attr('stroke', 'skyblue')
         //.attr('stroke-linecap', 'square')
         .attr('fill', 'transparent')
         .attr('pointer-events', 'none');
 
-    animate();
+   // animate();
 
     function animate() {
         outline.transition()

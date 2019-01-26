@@ -7,9 +7,9 @@ var commandLayout = {
     l: [[1, 2]],
     t: [[1, 2]],
     a: [[1, 2], [6, 7]],
-    q: [[1, 2, 'both'], [3, 4]],
-    s: [[1, 2, 'both'], [3, 4]],
-    c: [[1, 2, 'prev'], [3, 4, 'next'], [5, 6]],
+    q: [[1, 2], [3, 4]],
+    s: [[1, 2], [3, 4]],
+    c: [[1, 2], [3, 4], [5, 6]],
 };
 
 
@@ -32,22 +32,15 @@ module.exports = function (ctx) {
         var controlPointsPathD = "";
         d3.selectAll('circle.editor-anchor-point')
             .each(function (d) {
-                var cur = d3.select(this);
-                if (d.controlPointMode === 'prev') {
-                    var prevSegIdx = d.segmentIndex - 1;
-                    var prevSeg = svgPathEditor.segments[prevSegIdx];
-                    var prevSegTailIdx = commandLayout[prevSeg[0].toLowerCase()].length - 1;
-                    addLine(cur, prevSegIdx, prevSegTailIdx)
-                }
-                if (d.controlPointMode === 'next') {
-                    addLine(cur, d.segmentIndex,d.pointIndex + 1)
-                }
+                if(d.prevControlPoint || d.controlPoint)
+                    addLine(d3.select(this), d.index-1)
             });
 
-        function addLine(curPt, segIdx, ptIdx) {
+        function addLine(curPt, ptIdx) {
             try {
-                var toPt = edit.select('.seg_' + segIdx + '_' + ptIdx);
-                controlPointsPathD += "M" + toPt.attr('cx') +
+                var toPt = edit.select('.pt_' + ptIdx);
+                controlPointsPathD +=
+                    "M" + toPt.attr('cx') +
                     "," + toPt.attr('cy') +
                     "L" + curPt.attr('cx') +
                     "," + curPt.attr('cy');
@@ -65,7 +58,16 @@ module.exports = function (ctx) {
 
         var activePathPoints = [];
 
-        function addPoint(segmentIndex, pointIndex, xIndex, yIndex, controlPointMode) {
+        function isControlPoint(segmentIndex, pointIndex) {
+            var cmd = svgPathEditor.segments[segmentIndex][0].toLowerCase();
+            return commandLayout[cmd].length !== pointIndex + 1;
+        }
+
+        function isPrevControlPoint() {
+            return activePathPoints.length && activePathPoints[activePathPoints.length - 1].controlPoint;
+        }
+
+        function addPoint(segmentIndex, pointIndex, xIndex, yIndex) {
             var segment = svgPathEditor.segments[segmentIndex];
             pt.x = segment[xIndex];
             pt.y = segment[yIndex];
@@ -76,8 +78,10 @@ module.exports = function (ctx) {
                 xIndex: xIndex,
                 yIndex: yIndex,
                 segmentIndex: segmentIndex,
-                controlPointMode: controlPointMode,
-                pointIndex: pointIndex
+                pointIndex: pointIndex,
+                index: activePathPoints.length,
+                controlPoint: isControlPoint(segmentIndex, pointIndex),
+                prevControlPoint: isPrevControlPoint(),
             });
         }
 
@@ -86,7 +90,7 @@ module.exports = function (ctx) {
             if (!seg[1])
                 return;
             commandLayout[seg[0].toLowerCase()].forEach(function (indexes, group) {
-                addPoint(i, group, indexes[0],indexes[1], indexes[2]);
+                addPoint(i, group, indexes[0], indexes[1]);
             })
         });
 
@@ -105,6 +109,7 @@ module.exports = function (ctx) {
             .each(function (d) {
                 d3.select(this)
                     .classed('seg_'+d.segmentIndex+'_'+d.pointIndex, true)
+                    .classed('pt_'+d.index, true)
             })
             .call(d3.drag()
                 .subject(function (d) {
@@ -142,7 +147,7 @@ module.exports = function (ctx) {
                     return d.y;
                 })
                 .attr('stroke', function (d) {
-                    return d.controlPointMode ? '#ff0013' : '#fcf9ff';
+                    return d.controlPoint ? '#ff0013' : '#fcf9ff';
                 });
 
             updateControlPointsPaths(edit, controlPointsPath);
@@ -152,7 +157,6 @@ module.exports = function (ctx) {
 
     function startEdit() {
         active = ctx.active.node().firstChild;
-
         updatePathEditorPoints()
     }
 
