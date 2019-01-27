@@ -1573,6 +1573,8 @@ function canvas(ctx) {
                 canvas.node().appendChild(deleted.node());
                 ctx.active = deleted;
                 ctx.extent.updateExtent();
+                ctx.edit.updatePathEditor();
+
             },
             redo: del
         });
@@ -1581,6 +1583,7 @@ function canvas(ctx) {
             deleted.remove();
             ctx.active = null;
             ctx.extent.updateExtent();
+            ctx.edit.updatePathEditor();
         }
     });
 
@@ -1612,7 +1615,7 @@ function canvas(ctx) {
 
     function drawEnd() {
 
-        ctx.extent.updateExtent(ctx);
+
         !d3.event.sourceEvent.ctrlKey && ctx.broker.fire(ctx.broker.events.MODE, 'null');
         ctx.active = d3.select(ctx.active.node().parentNode)
             .call(createTranslate(ctx))
@@ -1622,6 +1625,8 @@ function canvas(ctx) {
         action.endDraw();
 
         ctx.broker.fire(ctx.broker.events.ACTION, action);
+        ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 
 
@@ -1635,11 +1640,13 @@ function canvas(ctx) {
                 shape.remove();
                 ctx.active = prev;
                 ctx.extent.updateExtent();
+                ctx.edit.updatePathEditor();
             },
             redo: function () {
                 canvas.node().append(shape.node());
                 ctx.active = shape;
                 ctx.extent.updateExtent();
+                ctx.edit.updatePathEditor();
             }
         }
     }
@@ -2523,6 +2530,7 @@ module.exports = function (ctx) {
         ctx.active.datum().y = d.y;
         ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 };
 

@@ -55,5 +55,6 @@ module.exports = function (ctx) {
         ctx.active.datum().y = d.y;
         ctx.active.attr('transform', svg.getTransform);
         ctx.extent.updateExtent();
+        ctx.edit.updatePathEditor();
     }
 };
