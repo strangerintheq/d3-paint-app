@@ -59,8 +59,22 @@ function buttons(selector, event) {
         let btn = d3.select(this);
         btn.attr('id', btn.html());
         btn.on('click', function () {
-            if (event) paint.fire(event, btn.attr('id'));
-            else paint.fire(btn.attr('id'));
+            if (event)
+                paint.fire(event, btn.attr('id'));
+            else
+                paint.fire(btn.attr('id'));
         })
     });
 }
+
+d3.select('button#_3d').on('click', function () {
+
+    Potrace.loadImageFromUrl('data:image/svg+xml;base64,' + btoa(paint.getImage()));
+    Potrace.process(function(){
+        var d = Potrace.getSVG(1);
+        d3.select('body').html(d)
+    });
+
+
+    d3.select('#paint').remove();
+});

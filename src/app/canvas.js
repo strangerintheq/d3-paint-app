@@ -56,10 +56,25 @@ function canvas(ctx) {
     });
 
     return {
+
+        getImage: function() {
+            return `<svg xmlns="http://www.w3.org/2000/svg" 
+                         xmlns:xlink="http://www.w3.org/1999/xlink" 
+                         width="${width}" 
+                         height="${height}"
+                         style="background-color:white" 
+                         viewBox="${-width/2} ${-height/2} ${width} ${height}">
+                         
+                        ${canvas.html()}
+                        
+                    </svg>`;
+        },
+
         applyTransform: function () {
             helpers.attr("transform", ctx.transform);
             canvas.attr("transform", ctx.transform);
         }
+
     };
 
     function drawStart() {

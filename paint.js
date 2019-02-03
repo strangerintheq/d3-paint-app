@@ -1522,7 +1522,7 @@ function broker() {
     }
 
     function fire(evt, arg) {
-        console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
+        //console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
         listeners[evt] && listeners[evt].forEach(function (listener) {
             listener(arg);
         });
@@ -1588,10 +1588,25 @@ function canvas(ctx) {
     });
 
     return {
+
+        getImage: function() {
+            return `<svg xmlns="http://www.w3.org/2000/svg" 
+                         xmlns:xlink="http://www.w3.org/1999/xlink" 
+                         width="${width}" 
+                         height="${height}"
+                         style="background-color:white" 
+                         viewBox="${-width/2} ${-height/2} ${width} ${height}">
+                         
+                        ${canvas.html()}
+                        
+                    </svg>`;
+        },
+
         applyTransform: function () {
             helpers.attr("transform", ctx.transform);
             canvas.attr("transform", ctx.transform);
         }
+
     };
 
     function drawStart() {
@@ -2482,7 +2497,7 @@ module.exports = function (ctx) {
     return d3.drag()
         .on("start", function (d) {
             activate(d3.select(this));
-            console.log(d3.select(this).attr('transform'), d3.select(this).datum())
+        //    console.log(d3.select(this).attr('transform'), d3.select(this).datum())
             drag(d);
         })
         .on("drag", drag)
@@ -2491,7 +2506,7 @@ module.exports = function (ctx) {
             ctx.broker.fire(ctx.broker.events.ACTION, action);
             action = null;
 
-            console.log(d3.select(this).attr('transform'), d3.select(this).datum())
+           // console.log(d3.select(this).attr('transform'), d3.select(this).datum())
         });
 
     function drag(d) {
@@ -2610,6 +2625,7 @@ window.d3Paint = function (elementOrSelector) {
     ctx.canvas = createCanvas(ctx);
     ctx.extent = createExtent(ctx);
     ctx.edit = createPathEditor(ctx);
+
     createModes(ctx);
     createPanZoom(ctx);
     addUndoRedoSupport(ctx);
@@ -2620,6 +2636,8 @@ window.d3Paint = function (elementOrSelector) {
     window.oncontextmenu = function () {
         return false
     };
+
+    ctx.broker.getImage = ctx.canvas.getImage;
 
     return ctx.broker;
 };

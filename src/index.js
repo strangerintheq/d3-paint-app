@@ -28,6 +28,7 @@ window.d3Paint = function (elementOrSelector) {
     ctx.canvas = createCanvas(ctx);
     ctx.extent = createExtent(ctx);
     ctx.edit = createPathEditor(ctx);
+
     createModes(ctx);
     createPanZoom(ctx);
     addUndoRedoSupport(ctx);
@@ -38,6 +39,8 @@ window.d3Paint = function (elementOrSelector) {
     window.oncontextmenu = function () {
         return false
     };
+
+    ctx.broker.getImage = ctx.canvas.getImage;
 
     return ctx.broker;
 };
