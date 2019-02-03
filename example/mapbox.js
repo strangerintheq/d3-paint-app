@@ -70,11 +70,11 @@ function buttons(selector, event) {
 d3.select('button#_3d').on('click', function () {
 
     Potrace.loadImageFromUrl('data:image/svg+xml;base64,' + btoa(paint.getImage()));
-    Potrace.process(function(){
-        var d = Potrace.getSVG(1);
-        d3.select('body').html(d)
+
+    Potrace.process(function() {
+        scene('#mapbox', map, Potrace.getSVG(1));
     });
 
-
     d3.select('#paint').remove();
+
 });
