@@ -13,13 +13,18 @@ function scene(overlayTarget, map, svg) {
     var renderer = createRenderer(w, h);
 
     app.world = new THREE.Group();
+    app.world.name = 'world';
     app.world.matrixAutoUpdate = false;
+
     app.buildingGroup = new THREE.Group();
+    app.buildingGroup.name = 'building';
     app.world.add(app.buildingGroup);
+
     var scene = new THREE.Scene();
     scene.add(app.world);
 
     app.camera = new THREE.PerspectiveCamera(28, w/h, 1e-2, 5e8);
+    app.camera.matrixAutoUpdate = false;
 
     app.render = function () {
         renderer.render(scene, app.camera);
@@ -32,14 +37,15 @@ function scene(overlayTarget, map, svg) {
     createModelFromSvg(app.buildingGroup, svg);
 
     var z = 1 / Math.pow(2, 16);
+    var rot = 0;
     app.buildingGroup.scale.set(z, z, z);
-    app.buildingGroup.rotation.set(Math.PI / 2, -0 / 180 * Math.PI, Math.PI / 2);
-    app.buildingGroup.position.copy(applyMercatorProjection([60, 30.2]));
-
+    app.buildingGroup.rotation.set(Math.PI / 2, -rot / 180 * Math.PI, Math.PI / 2);
+    app.buildingGroup.position.copy(applyMercatorProjection([30.2, 60]));
+    syncSceneWithMap(app);
 }
 
 function applyMercatorProjection(coords) {
-    var MERCATOR_A = 6378137.0;
+        var MERCATOR_A = 6378137.0;
     var PROJECTION_WORLD_SIZE = 512 / (2 * (MERCATOR_A * Math.PI));
     var PI_180 = Math.PI / 180;
     var projected = [
@@ -169,6 +175,10 @@ function createModelFromSvg(g, svg) {
 
 function createShapesGroup(geometry) {
     var shapeGroup = new THREE.Group();
+    shapeGroup.rotation.x = Math.PI / 2;
+    shapeGroup.rotation.y = Math.PI / 2;
+    shapeGroup.scale.set(1, -1, 1);
+    shapeGroup.name = 'shapesGroup';
 
     shapeGroup.add(new THREE.Mesh(
         geometry,
@@ -198,8 +208,8 @@ function extrudeShape(simpleShape) {
     }));
 
     geometry.vertices = geometry.vertices.map(function (v) {
-        v.x = trunc(v.x);
-        v.y = trunc(v.y);
+        v.x = trunc(v.x) - 400;
+        v.y = trunc(v.y) - 300;
         v.z = trunc(v.z);
         return v;
     });
@@ -208,8 +218,8 @@ function extrudeShape(simpleShape) {
 }
 
 function trunc(n) {
-    return n;
-  //  return Math.round( n * 1e4 ) / 1e4;
+
+    return Math.round( n * 1e4 ) / 1e4;
 }
 
 function fixShapesHoles(shapes) {
