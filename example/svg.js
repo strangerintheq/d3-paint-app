@@ -22,12 +22,12 @@ function svg2three(g, svg) {
         var shapeGroup = new THREE.Group();
         // shapeGroup.rotation.x = Math.PI / 2;
         // shapeGroup.rotation.z = Math.PI / 2;
-        // shapeGroup.scale.set(1, -1, 1);
+        shapeGroup.scale.set(1, -1, 1);
         shapeGroup.name = 'shapesGroup';
 
         shapeGroup.add(new THREE.Mesh(
             geometry,
-            new THREE.MeshNormalMaterial()
+            new THREE.MeshBasicMaterial()
         ));
 
         shapeGroup.add(new THREE.LineSegments(
@@ -35,7 +35,7 @@ function svg2three(g, svg) {
             new THREE.LineBasicMaterial({
                 color: 0x000000,
                 transparent: true,
-                opacity: 0.4
+                opacity: 1
             })
         ));
 

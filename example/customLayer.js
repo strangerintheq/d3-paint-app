@@ -6,10 +6,10 @@ function scene(overlayTarget, map, svg) {
         translateX: translate[0],
         translateY: translate[1],
         translateZ: 0,
-        rotateX: Math.PI / 2,
+        rotateX: 0,
         rotateY: 0,
         rotateZ: 0,
-        scale: 5.41843220338983e-8
+        scale: 1/Math.pow(2,16)/512
     };
 
     // converts from WGS84 Longitude, Latitude into a unit vector anchor at the top left as needed for GL JS custom layers
@@ -42,6 +42,8 @@ function scene(overlayTarget, map, svg) {
             this.map = map;
 
             this.renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                opacity: true,
                 canvas: map.getCanvas(),
                 context: gl
             });
