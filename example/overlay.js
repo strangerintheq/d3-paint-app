@@ -37,8 +37,9 @@ function scene(overlayTarget, map, svg) {
 
     var z = 1 / Math.pow(2, 16);
     var rot = 0;
+
     app.buildingGroup.scale.set(z, z, z);
-    app.buildingGroup.rotation.set(Math.PI / 2, -rot / 180 * Math.PI, Math.PI / 2);
+    app.buildingGroup.rotation.set(0, -rot / 180 * Math.PI, 0);
     app.buildingGroup.position.copy(applyMercatorProjection([30.2, 60]));
     syncSceneWithMap(app);
 }

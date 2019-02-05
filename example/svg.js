@@ -27,7 +27,10 @@ function svg2three(g, svg) {
 
         shapeGroup.add(new THREE.Mesh(
             geometry,
-            new THREE.MeshBasicMaterial()
+            new THREE.MeshBasicMaterial({
+                opacity: 0.5,
+                transparent: true,
+            })
         ));
 
         shapeGroup.add(new THREE.LineSegments(
@@ -35,7 +38,7 @@ function svg2three(g, svg) {
             new THREE.LineBasicMaterial({
                 color: 0x000000,
                 transparent: true,
-                opacity: 1
+                opacity: 0.5,
             })
         ));
 

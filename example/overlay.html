@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/5.7.0/d3.js'></script>
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.1/mapbox-gl.js'></script>
+    <script src="https://kilobtye.github.io/potrace/potrace.js"></script>
+    <script src="https://threejs.org/build/three.min.js"></script>
+
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.44.1/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="paint.css">
+
+    <div id="controls">
+
+        <span id="mode">
+            <button>null</button>
+            <button>circle</button>
+            <button>rect</button>
+            <button>line</button>
+            <button>pen</button>
+        </span>
+
+        <span id="actions">
+            <button disabled>undo</button>
+            <button disabled>redo</button>
+            <button disabled>delete</button>
+            <button disabled>edit</button>
+        </span>
+
+        <span style="float: right" id="currentMode">
+            currentMode: null
+        </span>
+
+        <button style="float: right; margin-right: 10px" id="_3d">3d</button>
+
+    </div>
+
+    <div id="mapbox"></div>
+    <div id="paint"></div>
+
+    <script src="../paint.js"></script>
+    <script src="mapbox.js"></script>
+    <script src="svg.js"></script>
+    <script src="overlay.js"></script>
+</body>
+</html>
