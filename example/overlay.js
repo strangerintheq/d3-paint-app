@@ -16,6 +16,7 @@ function scene(overlayTarget, map, svg) {
     app.world.matrixAutoUpdate = false;
 
     app.buildingGroup = new THREE.Group();
+    app.buildingGroup.scale.set(-1, 1, 1);
     app.buildingGroup.name = 'building';
     app.world.add(app.buildingGroup);
 

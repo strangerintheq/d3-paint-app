@@ -20,9 +20,6 @@ function svg2three(g, svg) {
 
     function createShapesGroup(geometry) {
         var shapeGroup = new THREE.Group();
-        // shapeGroup.rotation.x = Math.PI / 2;
-        // shapeGroup.rotation.z = Math.PI / 2;
-        shapeGroup.scale.set(1, -1, 1);
         shapeGroup.name = 'shapesGroup';
 
         shapeGroup.add(new THREE.Mesh(

@@ -34,6 +34,7 @@ function scene(overlayTarget, map, svg) {
 
 
             this.buildingGroup = new THREE.Group();
+            this.buildingGroup.scale.set(1, -1, 1);
             this.buildingGroup.name = 'building';
             this.scene.add(this.buildingGroup);
 
