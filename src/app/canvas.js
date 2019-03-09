@@ -24,14 +24,16 @@ function canvas(ctx) {
         .attr('height', height)
         .call(d3.drag()
             .on("start", function () {
-                ctx.mode && drawStart();
+                ctx.mode && ctx.mode.dragStart && drawStart();
             })
             .on("drag", function () {
-                ctx.mode && ctx.mode.dragMove(d3.event);
+                ctx.mode && ctx.mode.dragMove && ctx.mode.dragMove(d3.event);
             })
             .on("end", function () {
-                ctx.mode && drawEnd();
+                ctx.mode && ctx.mode.dragStart && drawEnd();
             }));
+
+
 
     ctx.broker.on(ctx.broker.events.DELETE, function () {
         var deleted = ctx.active;
@@ -78,9 +80,14 @@ function canvas(ctx) {
     };
 
     function drawStart() {
-        var group = canvas
-            .append('g')
-            .datum({x: 0, y: 0, r: 0});
+
+
+        var group;
+
+        if (ctx.mode.isNeedToCreateGroup())
+            group = canvas
+                .append('g')
+                .datum({x: 0, y: 0, r: 0});
 
         action = createDrawAction(ctx.active);
 
@@ -106,6 +113,8 @@ function canvas(ctx) {
             .attr('transform', svg.getTransform);
 
         action.endDraw();
+
+        ctx.mode.dragEnd && ctx.mode.dragEnd(d3.event);
 
         ctx.broker.fire(ctx.broker.events.ACTION, action);
         ctx.extent.updateExtent();
