@@ -2089,7 +2089,8 @@ var modes = {
 module.exports = function (ctx) {
     ctx.broker.on(ctx.broker.events.MODE, function (newMode) {
         ctx.mode = modes[newMode];
-        ctx.mode.init && ctx.mode.init(ctx);
+        if (ctx.mode && ctx.mode.init)
+            ctx.mode.init(ctx);
     });
 };
 
