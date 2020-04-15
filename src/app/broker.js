@@ -22,7 +22,11 @@ function broker() {
     function fire(evt, arg) {
         //console.log('evt: ' + evt + (arg ? '[' + JSON.stringify(arg) + ']' : ''));
         listeners[evt] && listeners[evt].forEach(function (listener) {
-            listener(arg);
+            try {
+                listener(arg);
+            } catch (e) {
+                console.log(e);
+            }    
         });
     }
 }
